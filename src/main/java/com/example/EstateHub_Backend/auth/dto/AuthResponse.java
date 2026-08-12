@@ -1,4 +1,18 @@
 package com.example.EstateHub_Backend.auth.dto;
 
+import com.example.EstateHub_Backend.user.Role;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+
+@Getter
+@Builder
+@AllArgsConstructor
 public class AuthResponse {
+
+    private String message;
+    private Long userId;
+    private String name;
+    private String email;
+    private Role role;
 }
