@@ -1,6 +1,7 @@
 package com.example.EstateHub_Backend.auth;
 
 import com.example.EstateHub_Backend.auth.dto.AuthResponse;
+import com.example.EstateHub_Backend.auth.dto.LoginRequest;
 import com.example.EstateHub_Backend.auth.dto.RegisterRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -25,5 +26,15 @@ public class AuthController {
         return ResponseEntity
                 .status(HttpStatus.CREATED)
                 .body(response);
+    }
+
+    @PostMapping("/login")
+    public ResponseEntity<AuthResponse> login(
+            @Valid @RequestBody LoginRequest request
+    ) {
+
+        AuthResponse response = authService.login(request);
+
+        return ResponseEntity.ok(response);
     }
 }

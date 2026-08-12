@@ -1,11 +1,14 @@
 package com.example.EstateHub_Backend.auth;
 
 import com.example.EstateHub_Backend.auth.dto.AuthResponse;
+import com.example.EstateHub_Backend.auth.dto.LoginRequest;
 import com.example.EstateHub_Backend.auth.dto.RegisterRequest;
+import com.example.EstateHub_Backend.security.JwtService;
 import com.example.EstateHub_Backend.user.Role;
 import com.example.EstateHub_Backend.user.User;
 import com.example.EstateHub_Backend.user.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -15,27 +18,28 @@ public class AuthService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final JwtService jwtService;
+
+    // ===============================
+    // REGISTER
+    // ===============================
 
     public AuthResponse register(RegisterRequest request) {
 
-        // Check email
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new RuntimeException("Email already registered");
         }
 
-        // Check mobile
         if (userRepository.existsByMobile(request.getMobile())) {
             throw new RuntimeException("Mobile number already registered");
         }
 
-        // Default role
         Role role = request.getRole();
 
         if (role == null) {
             role = Role.BUYER;
         }
 
-        // Create user
         User user = User.builder()
                 .name(request.getName())
                 .email(request.getEmail())
@@ -53,6 +57,41 @@ public class AuthService {
                 .name(savedUser.getName())
                 .email(savedUser.getEmail())
                 .role(savedUser.getRole())
+                .token(null)
+                .build();
+    }
+
+    // ===============================
+    // LOGIN
+    // ===============================
+
+    public AuthResponse login(LoginRequest request) {
+
+        User user = userRepository.findByEmail(request.getEmail())
+                .orElseThrow(() ->
+                        new BadCredentialsException("Invalid email or password")
+                );
+
+        if (!passwordEncoder.matches(
+                request.getPassword(),
+                user.getPassword()
+        )) {
+            throw new BadCredentialsException("Invalid email or password");
+        }
+
+        if (!user.getEnabled()) {
+            throw new RuntimeException("User account is disabled");
+        }
+
+        String token = jwtService.generateToken(user);
+
+        return AuthResponse.builder()
+                .message("Login successful")
+                .userId(user.getId())
+                .name(user.getName())
+                .email(user.getEmail())
+                .role(user.getRole())
+                .token(token)
                 .build();
     }
 }
