@@ -16,7 +16,7 @@ public class OpenApiConfig {
         return new OpenAPI()
                 .info(new Info()
                         .title("EstateHub API")
-                        .description("Real Estate Lead Management & Brokerage Platform API")
+                        .description("Real Estate Lead Management & Brokerage Platform")
                         .version("1.0"))
                 .components(
                         new Components()
