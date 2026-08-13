@@ -1,11 +1,13 @@
 package com.example.EstateHub_Backend.lead;
 
+import com.example.EstateHub_Backend.lead.dto.LeadRequest;
+import com.example.EstateHub_Backend.lead.dto.LeadResponse;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDate;
 import java.util.List;
 
 @RestController
@@ -15,41 +17,31 @@ public class LeadController {
 
     private final LeadService leadService;
 
-    // Create Lead
+    // Buyer - Create Lead
     @PostMapping
-    public ResponseEntity<Lead> createLead(
-            @RequestParam Long buyerId,
-            @RequestParam Long propertyId,
-            @RequestParam String budget,
-            @RequestParam LocalDate preferredVisitDate,
-            @RequestParam String message
+    public ResponseEntity<LeadResponse> createLead(
+            @Valid @RequestBody LeadRequest request
     ) {
 
-        Lead lead = leadService.createLead(
-                buyerId,
-                propertyId,
-                budget,
-                preferredVisitDate,
-                message
-        );
+        LeadResponse response = leadService.createLead(request);
 
         return ResponseEntity
                 .status(HttpStatus.CREATED)
-                .body(lead);
+                .body(response);
     }
 
     // Admin - Get all leads
     @GetMapping
-    public ResponseEntity<List<Lead>> getAllLeads() {
+    public ResponseEntity<List<LeadResponse>> getAllLeads() {
 
         return ResponseEntity.ok(
                 leadService.getAllLeads()
         );
     }
 
-    // Get Lead by ID
+    // Admin - Get Lead by ID
     @GetMapping("/{id}")
-    public ResponseEntity<Lead> getLeadById(
+    public ResponseEntity<LeadResponse> getLeadById(
             @PathVariable Long id
     ) {
 

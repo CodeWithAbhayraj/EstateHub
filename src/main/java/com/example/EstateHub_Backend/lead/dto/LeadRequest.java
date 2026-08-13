@@ -20,5 +20,6 @@ public class LeadRequest {
     @NotNull(message = "Preferred visit date is required")
     private LocalDate preferredVisitDate;
 
+    @NotBlank(message = "Message is required")
     private String message;
 }
