@@ -2,9 +2,11 @@ package com.example.EstateHub_Backend.lead;
 
 import com.example.EstateHub_Backend.lead.dto.LeadRequest;
 import com.example.EstateHub_Backend.lead.dto.LeadResponse;
+import com.example.EstateHub_Backend.lead.dto.LeadStatusUpdateRequest;
 import com.example.EstateHub_Backend.property.Property;
 import com.example.EstateHub_Backend.property.PropertyRepository;
 import com.example.EstateHub_Backend.property.PropertyStatus;
+import com.example.EstateHub_Backend.user.Role;
 import com.example.EstateHub_Backend.user.User;
 import com.example.EstateHub_Backend.user.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -22,9 +24,9 @@ public class LeadService {
     private final UserRepository userRepository;
     private final PropertyRepository propertyRepository;
 
-    // ===============================
+    // ==========================================
     // CREATE LEAD
-    // ===============================
+    // ==========================================
 
     public LeadResponse createLead(LeadRequest request) {
 
@@ -40,8 +42,8 @@ public class LeadService {
                         new RuntimeException("Buyer not found")
                 );
 
-        if (buyer.getRole() !=
-                com.example.EstateHub_Backend.user.Role.BUYER) {
+        // Only BUYER can create lead
+        if (buyer.getRole() != Role.BUYER) {
 
             throw new RuntimeException(
                     "Only buyers can create leads"
@@ -54,6 +56,7 @@ public class LeadService {
                         new RuntimeException("Property not found")
                 );
 
+        // Lead only for published property
         if (property.getStatus() != PropertyStatus.PUBLISHED) {
 
             throw new RuntimeException(
@@ -77,9 +80,9 @@ public class LeadService {
         return mapToResponse(savedLead);
     }
 
-    // ===============================
+    // ==========================================
     // ADMIN - GET ALL LEADS
-    // ===============================
+    // ==========================================
 
     public List<LeadResponse> getAllLeads() {
 
@@ -89,9 +92,9 @@ public class LeadService {
                 .toList();
     }
 
-    // ===============================
-    // GET LEAD BY ID
-    // ===============================
+    // ==========================================
+    // ADMIN - GET LEAD BY ID
+    // ==========================================
 
     public LeadResponse getLeadById(Long id) {
 
@@ -103,9 +106,31 @@ public class LeadService {
         return mapToResponse(lead);
     }
 
-    // ===============================
+    // ==========================================
+    // ADMIN - UPDATE LEAD STATUS
+    // ==========================================
+
+    public LeadResponse updateLeadStatus(
+            Long id,
+            LeadStatusUpdateRequest request
+    ) {
+
+        Lead lead = leadRepository.findById(id)
+                .orElseThrow(() ->
+                        new RuntimeException("Lead not found")
+                );
+
+        lead.setStatus(request.getStatus());
+        lead.setRemarks(request.getRemarks());
+
+        Lead updatedLead = leadRepository.save(lead);
+
+        return mapToResponse(updatedLead);
+    }
+
+    // ==========================================
     // ENTITY → RESPONSE
-    // ===============================
+    // ==========================================
 
     private LeadResponse mapToResponse(Lead lead) {
 

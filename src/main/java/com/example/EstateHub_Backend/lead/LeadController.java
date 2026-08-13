@@ -2,10 +2,12 @@ package com.example.EstateHub_Backend.lead;
 
 import com.example.EstateHub_Backend.lead.dto.LeadRequest;
 import com.example.EstateHub_Backend.lead.dto.LeadResponse;
+import com.example.EstateHub_Backend.lead.dto.LeadStatusUpdateRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -17,7 +19,10 @@ public class LeadController {
 
     private final LeadService leadService;
 
-    // Buyer - Create Lead
+    // ==========================================
+    // BUYER - CREATE LEAD
+    // ==========================================
+
     @PostMapping
     public ResponseEntity<LeadResponse> createLead(
             @Valid @RequestBody LeadRequest request
@@ -30,7 +35,11 @@ public class LeadController {
                 .body(response);
     }
 
-    // Admin - Get all leads
+    // ==========================================
+    // ADMIN - GET ALL LEADS
+    // ==========================================
+
+    @PreAuthorize("hasRole('ADMIN')")
     @GetMapping
     public ResponseEntity<List<LeadResponse>> getAllLeads() {
 
@@ -39,7 +48,11 @@ public class LeadController {
         );
     }
 
-    // Admin - Get Lead by ID
+    // ==========================================
+    // ADMIN - GET LEAD BY ID
+    // ==========================================
+
+    @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/{id}")
     public ResponseEntity<LeadResponse> getLeadById(
             @PathVariable Long id
@@ -47,6 +60,22 @@ public class LeadController {
 
         return ResponseEntity.ok(
                 leadService.getLeadById(id)
+        );
+    }
+
+    // ==========================================
+    // ADMIN - UPDATE LEAD STATUS
+    // ==========================================
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @PatchMapping("/{id}/status")
+    public ResponseEntity<LeadResponse> updateLeadStatus(
+            @PathVariable Long id,
+            @Valid @RequestBody LeadStatusUpdateRequest request
+    ) {
+
+        return ResponseEntity.ok(
+                leadService.updateLeadStatus(id, request)
         );
     }
 }
