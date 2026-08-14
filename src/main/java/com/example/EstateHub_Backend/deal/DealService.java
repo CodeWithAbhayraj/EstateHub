@@ -1,0 +1,178 @@
+package com.example.EstateHub_Backend.deal;
+
+import com.example.EstateHub_Backend.deal.dto.DealRequest;
+import com.example.EstateHub_Backend.deal.dto.DealResponse;
+import com.example.EstateHub_Backend.deal.dto.DealStatusUpdateRequest;
+import com.example.EstateHub_Backend.lead.Lead;
+import com.example.EstateHub_Backend.lead.LeadRepository;
+import com.example.EstateHub_Backend.lead.LeadStatus;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.util.List;
+
+@Service
+@RequiredArgsConstructor
+public class DealService {
+
+    private final DealRepository dealRepository;
+    private final LeadRepository leadRepository;
+
+    // ==========================================
+    // CREATE DEAL
+    // ==========================================
+
+    @Transactional
+    public DealResponse createDeal(DealRequest request) {
+
+        Lead lead = leadRepository.findById(request.getLeadId())
+                .orElseThrow(() ->
+                        new RuntimeException("Lead not found")
+                );
+
+        // Deal can only be created after lead is CLOSED
+        if (lead.getStatus() != LeadStatus.CLOSED) {
+
+            throw new RuntimeException(
+                    "Deal can only be created for CLOSED lead"
+            );
+        }
+
+        // Prevent duplicate deal
+        if (dealRepository.existsByLeadId(request.getLeadId())) {
+
+            throw new RuntimeException(
+                    "Deal already exists for this lead"
+            );
+        }
+
+        BigDecimal commissionAmount =
+                calculateCommission(
+                        request.getDealAmount(),
+                        request.getCommissionPercentage()
+                );
+
+        Deal deal = Deal.builder()
+                .lead(lead)
+                .dealAmount(request.getDealAmount())
+                .commissionPercentage(
+                        request.getCommissionPercentage()
+                )
+                .commissionAmount(commissionAmount)
+                .status(DealStatus.PENDING)
+                .build();
+
+        Deal savedDeal = dealRepository.save(deal);
+
+        return mapToResponse(savedDeal);
+    }
+
+    // ==========================================
+    // GET ALL DEALS
+    // ==========================================
+
+    @Transactional(readOnly = true)
+    public List<DealResponse> getAllDeals() {
+
+        return dealRepository.findAll()
+                .stream()
+                .map(this::mapToResponse)
+                .toList();
+    }
+
+    // ==========================================
+    // GET DEAL BY ID
+    // ==========================================
+
+    @Transactional(readOnly = true)
+    public DealResponse getDealById(Long id) {
+
+        Deal deal = dealRepository.findById(id)
+                .orElseThrow(() ->
+                        new RuntimeException("Deal not found")
+                );
+
+        return mapToResponse(deal);
+    }
+
+    // ==========================================
+    // UPDATE DEAL STATUS
+    // ==========================================
+
+    @Transactional
+    public DealResponse updateDealStatus(
+            Long id,
+            DealStatusUpdateRequest request
+    ) {
+
+        Deal deal = dealRepository.findById(id)
+                .orElseThrow(() ->
+                        new RuntimeException("Deal not found")
+                );
+
+        deal.setStatus(request.getStatus());
+
+        Deal updatedDeal = dealRepository.save(deal);
+
+        return mapToResponse(updatedDeal);
+    }
+
+    // ==========================================
+    // CALCULATE COMMISSION
+    // ==========================================
+
+    private BigDecimal calculateCommission(
+            BigDecimal dealAmount,
+            BigDecimal commissionPercentage
+    ) {
+
+        return dealAmount
+                .multiply(commissionPercentage)
+                .divide(
+                        BigDecimal.valueOf(100),
+                        2,
+                        RoundingMode.HALF_UP
+                );
+    }
+
+    // ==========================================
+    // ENTITY → RESPONSE
+    // ==========================================
+
+    private DealResponse mapToResponse(Deal deal) {
+
+        Lead lead = deal.getLead();
+
+        return DealResponse.builder()
+                .id(deal.getId())
+                .leadId(lead.getId())
+                .propertyId(
+                        lead.getProperty().getId()
+                )
+                .propertyTitle(
+                        lead.getProperty().getTitle()
+                )
+                .dealAmount(
+                        deal.getDealAmount()
+                )
+                .commissionPercentage(
+                        deal.getCommissionPercentage()
+                )
+                .commissionAmount(
+                        deal.getCommissionAmount()
+                )
+                .status(
+                        deal.getStatus()
+                )
+                .createdAt(
+                        deal.getCreatedAt()
+                )
+                .updatedAt(
+                        deal.getUpdatedAt()
+                )
+                .build();
+    }
+}
