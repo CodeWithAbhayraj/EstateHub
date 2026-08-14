@@ -1,4 +1,8 @@
 package com.example.EstateHub_Backend.commission;
 
-public class PaymentStatus {
+public enum PaymentStatus {
+
+    PENDING,
+
+    PAID
 }

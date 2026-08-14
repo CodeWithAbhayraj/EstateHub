@@ -1,4 +1,8 @@
 package com.example.EstateHub_Backend.commission;
 
-public class CommissionType {
+public enum CommissionType {
+
+    PROPERTY_SALE,
+
+    PROPERTY_RENTAL
 }
