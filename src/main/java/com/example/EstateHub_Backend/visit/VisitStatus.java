@@ -1,4 +1,10 @@
 package com.example.EstateHub_Backend.visit;
 
-public class VisitStatus {
+public enum VisitStatus {
+
+    SCHEDULED,
+    CONFIRMED,
+    COMPLETED,
+    CANCELLED,
+    RESCHEDULED
 }
