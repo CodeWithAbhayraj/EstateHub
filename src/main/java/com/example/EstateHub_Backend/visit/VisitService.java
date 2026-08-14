@@ -47,9 +47,10 @@ public class VisitService {
                         new RuntimeException("Lead not found")
                 );
 
-        // IMPORTANT:
-        // Check that this lead belongs to logged-in buyer
-        if (!lead.getBuyer().getId().equals(buyer.getId())) {
+        // Check that lead belongs to logged-in buyer
+        if (lead.getBuyer() == null ||
+                !lead.getBuyer().getId().equals(buyer.getId())) {
+
             throw new RuntimeException(
                     "You can only create visit for your own lead"
             );
@@ -61,21 +62,24 @@ public class VisitService {
                         new RuntimeException("Property not found")
                 );
 
-        // IMPORTANT:
         // Check that lead and property are the same
-        if (!lead.getProperty().getId().equals(property.getId())) {
+        if (lead.getProperty() == null ||
+                !lead.getProperty().getId().equals(property.getId())) {
+
             throw new RuntimeException(
                     "Property does not belong to this lead"
             );
         }
 
+        // Create Visit
         Visit visit = new Visit();
 
         visit.setLeadId(lead.getId());
         visit.setPropertyId(property.getId());
 
-        // Buyer ID comes from JWT
-//        visit.setBuyerId(buyer.getId());
+        // IMPORTANT:
+        // Buyer ID comes from logged-in JWT user
+        visit.setBuyerId(buyer.getId());
 
         visit.setVisitDate(request.getVisitDate());
         visit.setVisitTime(request.getVisitTime());
@@ -107,15 +111,23 @@ public class VisitService {
             return mapToResponse(visit);
         }
 
-        // BUYER can see only own visit
-        if (currentUser.getRole() == Role.BUYER ) {
+        // BUYER can see only their own visit
+        if (currentUser.getRole() == Role.BUYER) {
 
-            throw new RuntimeException(
-                    "You are not allowed to view this visit"
-            );
+            if (visit.getBuyerId() == null ||
+                    !visit.getBuyerId().equals(currentUser.getId())) {
+
+                throw new RuntimeException(
+                        "You are not allowed to view this visit"
+                );
+            }
+
+            return mapToResponse(visit);
         }
 
-        return mapToResponse(visit);
+        throw new RuntimeException(
+                "You are not allowed to view this visit"
+        );
     }
 
     // =====================================================
@@ -245,7 +257,9 @@ public class VisitService {
         if (authentication == null ||
                 !authentication.isAuthenticated()) {
 
-            throw new RuntimeException("User is not authenticated");
+            throw new RuntimeException(
+                    "User is not authenticated"
+            );
         }
 
         String email = authentication.getName();
@@ -257,7 +271,7 @@ public class VisitService {
     }
 
     // =====================================================
-    // ENTITY → RESPONSE
+    // ENTITY -> RESPONSE
     // =====================================================
 
     private VisitResponse mapToResponse(Visit visit) {
@@ -267,7 +281,10 @@ public class VisitService {
         response.setId(visit.getId());
         response.setLeadId(visit.getLeadId());
         response.setPropertyId(visit.getPropertyId());
-//        response.setBuyerId(visit.getBuyerId());
+
+        // Buyer ID
+        response.setBuyerId(visit.getBuyerId());
+
         response.setVisitDate(visit.getVisitDate());
         response.setVisitTime(visit.getVisitTime());
         response.setStatus(visit.getStatus());
@@ -278,3 +295,4 @@ public class VisitService {
         return response;
     }
 }
+
