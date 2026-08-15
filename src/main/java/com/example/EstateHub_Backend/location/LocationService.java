@@ -1,4 +1,5 @@
-package com.example.EstateHub_Backend.location;
+
+        package com.example.EstateHub_Backend.location;
 
 import com.example.EstateHub_Backend.location.dto.AreaRequest;
 import com.example.EstateHub_Backend.location.dto.AreaResponse;
@@ -28,13 +29,20 @@ public class LocationService {
     @Transactional
     public CityResponse createCity(CityRequest request) {
 
-        if (cityRepository.existsByNameIgnoreCase(request.getName())) {
+        if (request == null || request.getName() == null ||
+                request.getName().trim().isEmpty()) {
+            throw new RuntimeException("City name is required");
+        }
+
+        String cityName = request.getName().trim();
+
+        if (cityRepository.existsByNameIgnoreCase(cityName)) {
             throw new RuntimeException("City already exists");
         }
 
         City city = new City();
 
-        city.setName(request.getName());
+        city.setName(cityName);
         city.setEnabled(true);
 
         City savedCity = cityRepository.save(city);
@@ -67,7 +75,7 @@ public class LocationService {
 
     public CityResponse searchCity(String name) {
 
-        City city = cityRepository.findByNameIgnoreCase(name)
+        City city = cityRepository.findByNameIgnoreCase(name.trim())
                 .orElseThrow(() ->
                         new RuntimeException(
                                 "City not found: " + name
@@ -88,6 +96,11 @@ public class LocationService {
             AreaRequest request
     ) {
 
+        if (request == null || request.getName() == null ||
+                request.getName().trim().isEmpty()) {
+            throw new RuntimeException("Area name is required");
+        }
+
         City city = cityRepository.findById(cityId)
                 .orElseThrow(() ->
                         new RuntimeException(
@@ -95,8 +108,10 @@ public class LocationService {
                         )
                 );
 
+        String areaName = request.getName().trim();
+
         if (areaRepository.existsByNameIgnoreCaseAndCityId(
-                request.getName(),
+                areaName,
                 cityId
         )) {
             throw new RuntimeException(
@@ -106,7 +121,7 @@ public class LocationService {
 
         Area area = new Area();
 
-        area.setName(request.getName());
+        area.setName(areaName);
         area.setCity(city);
         area.setEnabled(true);
 
@@ -139,7 +154,7 @@ public class LocationService {
 
         Area area = areaRepository
                 .findByNameIgnoreCaseAndCityId(
-                        name,
+                        name.trim(),
                         cityId
                 )
                 .orElseThrow(() ->
@@ -161,8 +176,17 @@ public class LocationService {
             PropertyTypeRequest request
     ) {
 
+        if (request == null || request.getName() == null ||
+                request.getName().trim().isEmpty()) {
+            throw new RuntimeException(
+                    "Property type name is required"
+            );
+        }
+
+        String propertyTypeName = request.getName().trim();
+
         if (propertyTypeRepository.existsByNameIgnoreCase(
-                request.getName()
+                propertyTypeName
         )) {
             throw new RuntimeException(
                     "Property type already exists"
@@ -171,7 +195,7 @@ public class LocationService {
 
         PropertyType propertyType = new PropertyType();
 
-        propertyType.setName(request.getName());
+        propertyType.setName(propertyTypeName);
         propertyType.setEnabled(true);
 
         PropertyType savedPropertyType =
@@ -210,7 +234,7 @@ public class LocationService {
 
         PropertyType propertyType =
                 propertyTypeRepository
-                        .findByNameIgnoreCase(name)
+                        .findByNameIgnoreCase(name.trim())
                         .orElseThrow(() ->
                                 new RuntimeException(
                                         "Property type not found: " + name
@@ -233,6 +257,9 @@ public class LocationService {
         response.setName(city.getName());
         response.setEnabled(city.getEnabled());
 
+        response.setCreatedAt(city.getCreatedAt());
+        response.setUpdatedAt(city.getUpdatedAt());
+
         return response;
     }
 
@@ -249,7 +276,11 @@ public class LocationService {
         response.setName(area.getName());
         response.setEnabled(area.getEnabled());
 
+        response.setCreatedAt(area.getCreatedAt());
+        response.setUpdatedAt(area.getUpdatedAt());
+
         if (area.getCity() != null) {
+
             response.setCityId(area.getCity().getId());
             response.setCityName(area.getCity().getName());
         }
@@ -273,6 +304,10 @@ public class LocationService {
         response.setName(propertyType.getName());
         response.setEnabled(propertyType.getEnabled());
 
+        response.setCreatedAt(propertyType.getCreatedAt());
+        response.setUpdatedAt(propertyType.getUpdatedAt());
+
         return response;
     }
 }
+
