@@ -1,6 +1,11 @@
 package com.example.EstateHub_Backend.location;
 
+import com.example.EstateHub_Backend.location.dto.AreaRequest;
+import com.example.EstateHub_Backend.location.dto.AreaResponse;
 import com.example.EstateHub_Backend.location.dto.CityRequest;
+import com.example.EstateHub_Backend.location.dto.CityResponse;
+import com.example.EstateHub_Backend.location.dto.PropertyTypeRequest;
+import com.example.EstateHub_Backend.location.dto.PropertyTypeResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,64 +20,73 @@ public class LocationService {
     private final AreaRepository areaRepository;
     private final PropertyTypeRepository propertyTypeRepository;
 
+
     // =====================================================
     // CITY
     // =====================================================
 
     @Transactional
-    public City createCity(CityRequest request) {
+    public CityResponse createCity(CityRequest request) {
 
-        if (request.getName() == null ||
-                request.getName().trim().isEmpty()) {
-
-            throw new RuntimeException("City name is required");
-        }
-
-        if (cityRepository.existsByNameIgnoreCase(
-                request.getName().trim()
-        )) {
+        if (cityRepository.existsByNameIgnoreCase(request.getName())) {
             throw new RuntimeException("City already exists");
         }
 
         City city = new City();
 
-        city.setName(request.getName().trim());
+        city.setName(request.getName());
         city.setEnabled(true);
 
-        return cityRepository.save(city);
+        City savedCity = cityRepository.save(city);
+
+        return mapCityToResponse(savedCity);
     }
 
-    public List<City> getAllCities() {
 
-        return cityRepository.findByEnabledTrue();
+    public List<CityResponse> getAllCities() {
+
+        return cityRepository.findByEnabledTrue()
+                .stream()
+                .map(this::mapCityToResponse)
+                .toList();
     }
 
-    public City getCityById(Long id) {
 
-        return cityRepository.findById(id)
+    public CityResponse getCityById(Long id) {
+
+        City city = cityRepository.findById(id)
                 .orElseThrow(() ->
                         new RuntimeException(
                                 "City not found with id: " + id
                         )
                 );
+
+        return mapCityToResponse(city);
     }
 
-    public City searchCity(String name) {
 
-        return cityRepository.findByNameIgnoreCase(name)
+    public CityResponse searchCity(String name) {
+
+        City city = cityRepository.findByNameIgnoreCase(name)
                 .orElseThrow(() ->
                         new RuntimeException(
                                 "City not found: " + name
                         )
                 );
+
+        return mapCityToResponse(city);
     }
+
 
     // =====================================================
     // AREA
     // =====================================================
 
     @Transactional
-    public Area createArea(Long cityId, Area area) {
+    public AreaResponse createArea(
+            Long cityId,
+            AreaRequest request
+    ) {
 
         City city = cityRepository.findById(cityId)
                 .orElseThrow(() ->
@@ -82,7 +96,7 @@ public class LocationService {
                 );
 
         if (areaRepository.existsByNameIgnoreCaseAndCityId(
-                area.getName(),
+                request.getName(),
                 cityId
         )) {
             throw new RuntimeException(
@@ -90,13 +104,19 @@ public class LocationService {
             );
         }
 
+        Area area = new Area();
+
+        area.setName(request.getName());
         area.setCity(city);
         area.setEnabled(true);
 
-        return areaRepository.save(area);
+        Area savedArea = areaRepository.save(area);
+
+        return mapAreaToResponse(savedArea);
     }
 
-    public List<Area> getAreasByCity(Long cityId) {
+
+    public List<AreaResponse> getAreasByCity(Long cityId) {
 
         if (!cityRepository.existsById(cityId)) {
             throw new RuntimeException(
@@ -104,65 +124,155 @@ public class LocationService {
             );
         }
 
-        return areaRepository.findByCityIdAndEnabledTrue(cityId);
+        return areaRepository
+                .findByCityIdAndEnabledTrue(cityId)
+                .stream()
+                .map(this::mapAreaToResponse)
+                .toList();
     }
 
-    public Area searchArea(String name, Long cityId) {
 
-        return areaRepository
-                .findByNameIgnoreCaseAndCityId(name, cityId)
+    public AreaResponse searchArea(
+            String name,
+            Long cityId
+    ) {
+
+        Area area = areaRepository
+                .findByNameIgnoreCaseAndCityId(
+                        name,
+                        cityId
+                )
                 .orElseThrow(() ->
                         new RuntimeException(
                                 "Area not found: " + name
                         )
                 );
+
+        return mapAreaToResponse(area);
     }
+
 
     // =====================================================
     // PROPERTY TYPE
     // =====================================================
 
     @Transactional
-    public PropertyType createPropertyType(
-            PropertyType propertyType
+    public PropertyTypeResponse createPropertyType(
+            PropertyTypeRequest request
     ) {
 
         if (propertyTypeRepository.existsByNameIgnoreCase(
-                propertyType.getName()
+                request.getName()
         )) {
             throw new RuntimeException(
                     "Property type already exists"
             );
         }
 
+        PropertyType propertyType = new PropertyType();
+
+        propertyType.setName(request.getName());
         propertyType.setEnabled(true);
 
-        return propertyTypeRepository.save(propertyType);
+        PropertyType savedPropertyType =
+                propertyTypeRepository.save(propertyType);
+
+        return mapPropertyTypeToResponse(savedPropertyType);
     }
 
-    public List<PropertyType> getAllPropertyTypes() {
 
-        return propertyTypeRepository.findByEnabledTrue();
+    public List<PropertyTypeResponse> getAllPropertyTypes() {
+
+        return propertyTypeRepository.findByEnabledTrue()
+                .stream()
+                .map(this::mapPropertyTypeToResponse)
+                .toList();
     }
 
-    public PropertyType getPropertyTypeById(Long id) {
 
-        return propertyTypeRepository.findById(id)
-                .orElseThrow(() ->
-                        new RuntimeException(
-                                "Property type not found with id: " + id
-                        )
-                );
+    public PropertyTypeResponse getPropertyTypeById(Long id) {
+
+        PropertyType propertyType =
+                propertyTypeRepository.findById(id)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Property type not found with id: " + id
+                                )
+                        );
+
+        return mapPropertyTypeToResponse(propertyType);
     }
 
-    public PropertyType searchPropertyType(String name) {
 
-        return propertyTypeRepository
-                .findByNameIgnoreCase(name)
-                .orElseThrow(() ->
-                        new RuntimeException(
-                                "Property type not found: " + name
-                        )
-                );
+    public PropertyTypeResponse searchPropertyType(
+            String name
+    ) {
+
+        PropertyType propertyType =
+                propertyTypeRepository
+                        .findByNameIgnoreCase(name)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Property type not found: " + name
+                                )
+                        );
+
+        return mapPropertyTypeToResponse(propertyType);
+    }
+
+
+    // =====================================================
+    // ENTITY → CITY RESPONSE
+    // =====================================================
+
+    private CityResponse mapCityToResponse(City city) {
+
+        CityResponse response = new CityResponse();
+
+        response.setId(city.getId());
+        response.setName(city.getName());
+        response.setEnabled(city.getEnabled());
+
+        return response;
+    }
+
+
+    // =====================================================
+    // ENTITY → AREA RESPONSE
+    // =====================================================
+
+    private AreaResponse mapAreaToResponse(Area area) {
+
+        AreaResponse response = new AreaResponse();
+
+        response.setId(area.getId());
+        response.setName(area.getName());
+        response.setEnabled(area.getEnabled());
+
+        if (area.getCity() != null) {
+            response.setCityId(area.getCity().getId());
+            response.setCityName(area.getCity().getName());
+        }
+
+        return response;
+    }
+
+
+    // =====================================================
+    // ENTITY → PROPERTY TYPE RESPONSE
+    // =====================================================
+
+    private PropertyTypeResponse mapPropertyTypeToResponse(
+            PropertyType propertyType
+    ) {
+
+        PropertyTypeResponse response =
+                new PropertyTypeResponse();
+
+        response.setId(propertyType.getId());
+        response.setName(propertyType.getName());
+        response.setEnabled(propertyType.getEnabled());
+
+        return response;
     }
 }
