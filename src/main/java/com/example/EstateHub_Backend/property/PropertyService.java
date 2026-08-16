@@ -1,5 +1,11 @@
 package com.example.EstateHub_Backend.property;
 
+import com.example.EstateHub_Backend.location.Area;
+import com.example.EstateHub_Backend.location.AreaRepository;
+import com.example.EstateHub_Backend.location.City;
+import com.example.EstateHub_Backend.location.CityRepository;
+import com.example.EstateHub_Backend.location.PropertyType;
+import com.example.EstateHub_Backend.location.PropertyTypeRepository;
 import com.example.EstateHub_Backend.property.dto.PropertyRequest;
 import com.example.EstateHub_Backend.property.dto.PropertyResponse;
 import com.example.EstateHub_Backend.user.User;
@@ -7,6 +13,7 @@ import com.example.EstateHub_Backend.user.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -17,10 +24,16 @@ public class PropertyService {
     private final PropertyRepository propertyRepository;
     private final UserRepository userRepository;
 
+    private final CityRepository cityRepository;
+    private final AreaRepository areaRepository;
+    private final PropertyTypeRepository propertyTypeRepository;
+
+
     // ==========================================
     // CREATE PROPERTY
     // ==========================================
 
+    @Transactional
     public PropertyResponse createProperty(
             PropertyRequest request,
             String userEmail
@@ -28,15 +41,46 @@ public class PropertyService {
 
         User seller = getUserByEmail(userEmail);
 
+        City city = cityRepository.findById(request.getCityId())
+                .orElseThrow(() ->
+                        new RuntimeException(
+                                "City not found with id: " + request.getCityId()
+                        )
+                );
+
+        Area area = areaRepository.findById(request.getAreaId())
+                .orElseThrow(() ->
+                        new RuntimeException(
+                                "Area not found with id: " + request.getAreaId()
+                        )
+                );
+
+        PropertyType propertyType =
+                propertyTypeRepository.findById(request.getPropertyTypeId())
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Property type not found with id: "
+                                                + request.getPropertyTypeId()
+                                )
+                        );
+
+        // Important:
+        // Area must belong to selected city
+        if (!area.getCity().getId().equals(city.getId())) {
+            throw new RuntimeException(
+                    "Selected area does not belong to selected city"
+            );
+        }
+
         Property property = Property.builder()
                 .seller(seller)
                 .title(request.getTitle())
                 .price(request.getPrice())
                 .area(request.getArea())
                 .bhk(request.getBhk())
-                .propertyType(request.getPropertyType())
-                .city(request.getCity())
-                .locality(request.getLocality())
+                .city(city)
+                .locationArea(area)
+                .propertyType(propertyType)
                 .furnished(request.getFurnished())
                 .parking(request.getParking())
                 .facing(request.getFacing())
@@ -47,10 +91,12 @@ public class PropertyService {
                 .status(PropertyStatus.DRAFT)
                 .build();
 
-        Property savedProperty = propertyRepository.save(property);
+        Property savedProperty =
+                propertyRepository.save(property);
 
         return mapToResponse(savedProperty);
     }
+
 
     // ==========================================
     // GET PROPERTY BY ID
@@ -66,6 +112,7 @@ public class PropertyService {
         return mapToResponse(property);
     }
 
+
     // ==========================================
     // GET ALL PUBLISHED PROPERTIES
     // ==========================================
@@ -78,6 +125,7 @@ public class PropertyService {
                 .map(this::mapToResponse)
                 .toList();
     }
+
 
     // ==========================================
     // GET SELLER'S PROPERTIES
@@ -96,10 +144,12 @@ public class PropertyService {
                 .toList();
     }
 
+
     // ==========================================
     // UPDATE PROPERTY
     // ==========================================
 
+    @Transactional
     public PropertyResponse updateProperty(
             Long id,
             PropertyRequest request,
@@ -110,10 +160,41 @@ public class PropertyService {
 
         User seller = getUserByEmail(userEmail);
 
-        // Only property owner can update
         if (!property.getSeller().getId().equals(seller.getId())) {
             throw new AccessDeniedException(
                     "You can update only your own property"
+            );
+        }
+
+        City city = cityRepository.findById(request.getCityId())
+                .orElseThrow(() ->
+                        new RuntimeException(
+                                "City not found with id: "
+                                        + request.getCityId()
+                        )
+                );
+
+        Area area = areaRepository.findById(request.getAreaId())
+                .orElseThrow(() ->
+                        new RuntimeException(
+                                "Area not found with id: "
+                                        + request.getAreaId()
+                        )
+                );
+
+        PropertyType propertyType =
+                propertyTypeRepository.findById(
+                        request.getPropertyTypeId()
+                ).orElseThrow(() ->
+                        new RuntimeException(
+                                "Property type not found with id: "
+                                        + request.getPropertyTypeId()
+                        )
+                );
+
+        if (!area.getCity().getId().equals(city.getId())) {
+            throw new RuntimeException(
+                    "Selected area does not belong to selected city"
             );
         }
 
@@ -121,9 +202,11 @@ public class PropertyService {
         property.setPrice(request.getPrice());
         property.setArea(request.getArea());
         property.setBhk(request.getBhk());
-        property.setPropertyType(request.getPropertyType());
-        property.setCity(request.getCity());
-        property.setLocality(request.getLocality());
+
+        property.setCity(city);
+        property.setLocationArea(area);
+        property.setPropertyType(propertyType);
+
         property.setFurnished(request.getFurnished());
         property.setParking(request.getParking());
         property.setFacing(request.getFacing());
@@ -138,6 +221,7 @@ public class PropertyService {
         return mapToResponse(updatedProperty);
     }
 
+
     // ==========================================
     // DELETE PROPERTY
     // ==========================================
@@ -151,7 +235,6 @@ public class PropertyService {
 
         User seller = getUserByEmail(userEmail);
 
-        // Only owner can delete
         if (!property.getSeller().getId().equals(seller.getId())) {
             throw new AccessDeniedException(
                     "You can delete only your own property"
@@ -160,6 +243,7 @@ public class PropertyService {
 
         propertyRepository.delete(property);
     }
+
 
     // ==========================================
     // SUBMIT FOR APPROVAL
@@ -193,6 +277,7 @@ public class PropertyService {
         );
     }
 
+
     // ==========================================
     // ADMIN APPROVE
     // ==========================================
@@ -214,6 +299,7 @@ public class PropertyService {
                 propertyRepository.save(property)
         );
     }
+
 
     // ==========================================
     // ADMIN REJECT
@@ -240,6 +326,7 @@ public class PropertyService {
         );
     }
 
+
     // ==========================================
     // PRIVATE METHODS
     // ==========================================
@@ -252,6 +339,7 @@ public class PropertyService {
                 );
     }
 
+
     private User getUserByEmail(String email) {
 
         return userRepository.findByEmail(email)
@@ -260,19 +348,44 @@ public class PropertyService {
                 );
     }
 
+
+    // ==========================================
+    // ENTITY → RESPONSE
+    // ==========================================
+
     private PropertyResponse mapToResponse(
             Property property
     ) {
 
         return PropertyResponse.builder()
+
                 .id(property.getId())
                 .title(property.getTitle())
                 .price(property.getPrice())
                 .area(property.getArea())
                 .bhk(property.getBhk())
-                .propertyType(property.getPropertyType())
-                .city(property.getCity())
-                .locality(property.getLocality())
+
+                .propertyTypeId(
+                        property.getPropertyType().getId()
+                )
+                .propertyType(
+                        property.getPropertyType().getName()
+                )
+
+                .cityId(
+                        property.getCity().getId()
+                )
+                .city(
+                        property.getCity().getName()
+                )
+
+                .areaId(
+                        property.getLocationArea().getId()
+                )
+                .areaName(
+                        property.getLocationArea().getName()
+                )
+
                 .furnished(property.getFurnished())
                 .parking(property.getParking())
                 .facing(property.getFacing())
@@ -283,6 +396,7 @@ public class PropertyService {
                 .status(property.getStatus())
                 .createdAt(property.getCreatedAt())
                 .updatedAt(property.getUpdatedAt())
+
                 .build();
     }
 }
