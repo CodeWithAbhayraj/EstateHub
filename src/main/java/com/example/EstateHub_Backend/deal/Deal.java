@@ -24,6 +24,7 @@ import java.time.LocalDateTime;
 @Builder
 public class Deal {
 
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
