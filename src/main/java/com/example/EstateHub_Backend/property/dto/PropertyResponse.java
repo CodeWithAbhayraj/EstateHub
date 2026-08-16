@@ -21,11 +21,33 @@ public class PropertyResponse {
 
     private Integer bhk;
 
-    private String propertyType;
+    // =====================================================
+    // CITY
+    // =====================================================
 
-    private String city;
+    private Long cityId;
 
-    private String locality;
+    private String cityName;
+
+    // =====================================================
+    // AREA
+    // =====================================================
+
+    private Long areaId;
+
+    private String areaName;
+
+    // =====================================================
+    // PROPERTY TYPE
+    // =====================================================
+
+    private Long propertyTypeId;
+
+    private String propertyTypeName;
+
+    // =====================================================
+    // OTHER PROPERTY DETAILS
+    // =====================================================
 
     private String furnished;
 
@@ -41,7 +63,15 @@ public class PropertyResponse {
 
     private String description;
 
+    // =====================================================
+    // STATUS
+    // =====================================================
+
     private PropertyStatus status;
+
+    // =====================================================
+    // TIMESTAMPS
+    // =====================================================
 
     private LocalDateTime createdAt;
 

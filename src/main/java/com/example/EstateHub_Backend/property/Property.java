@@ -1,5 +1,8 @@
 package com.example.EstateHub_Backend.property;
 
+import com.example.EstateHub_Backend.location.Area;
+import com.example.EstateHub_Backend.location.City;
+import com.example.EstateHub_Backend.location.PropertyType;
 import com.example.EstateHub_Backend.user.User;
 import jakarta.persistence.*;
 import lombok.*;
@@ -20,9 +23,18 @@ public class Property {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    // =====================================================
+    // SELLER
+    // =====================================================
+
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "seller_id", nullable = false)
     private User seller;
+
+
+    // =====================================================
+    // BASIC PROPERTY DETAILS
+    // =====================================================
 
     @Column(nullable = false)
     private String title;
@@ -30,20 +42,34 @@ public class Property {
     @Column(nullable = false, precision = 15, scale = 2)
     private BigDecimal price;
 
+    // Property ka actual size
     @Column(nullable = false)
     private Double area;
 
     @Column(nullable = false)
     private Integer bhk;
 
-    @Column(name = "property_type", nullable = false)
-    private String propertyType;
 
-    @Column(nullable = false)
-    private String city;
+    // =====================================================
+    // LOCATION RELATION
+    // =====================================================
 
-    @Column(nullable = false)
-    private String locality;
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "city_id", nullable = false)
+    private City city;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "area_id", nullable = false)
+    private Area locationArea;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "property_type_id", nullable = false)
+    private PropertyType propertyType;
+
+
+    // =====================================================
+    // OTHER PROPERTY DETAILS
+    // =====================================================
 
     private String furnished;
 
@@ -60,6 +86,11 @@ public class Property {
     @Column(length = 2000)
     private String description;
 
+
+    // =====================================================
+    // STATUS
+    // =====================================================
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private PropertyStatus status;
@@ -67,9 +98,15 @@ public class Property {
     @Column(length = 1000)
     private String rejectionReason;
 
+
+    // =====================================================
+    // TIMESTAMPS
+    // =====================================================
+
     private LocalDateTime createdAt;
 
     private LocalDateTime updatedAt;
+
 
     @PrePersist
     protected void onCreate() {
@@ -81,6 +118,7 @@ public class Property {
             status = PropertyStatus.DRAFT;
         }
     }
+
 
     @PreUpdate
     protected void onUpdate() {

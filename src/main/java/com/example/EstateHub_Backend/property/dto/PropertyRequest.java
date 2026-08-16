@@ -25,14 +25,25 @@ public class PropertyRequest {
     @Positive(message = "BHK must be greater than 0")
     private Integer bhk;
 
-    @NotBlank(message = "Property type is required")
-    private String propertyType;
+    // =====================================================
+    // LOCATION
+    // =====================================================
 
-    @NotBlank(message = "City is required")
-    private String city;
+    @NotNull(message = "City is required")
+    @Positive(message = "City ID must be greater than 0")
+    private Long cityId;
 
-    @NotBlank(message = "Locality is required")
-    private String locality;
+    @NotNull(message = "Area is required")
+    @Positive(message = "Area ID must be greater than 0")
+    private Long areaId;
+
+    @NotNull(message = "Property type is required")
+    @Positive(message = "Property type ID must be greater than 0")
+    private Long propertyTypeId;
+
+    // =====================================================
+    // OTHER PROPERTY DETAILS
+    // =====================================================
 
     private String furnished;
 
@@ -46,6 +57,9 @@ public class PropertyRequest {
 
     private Boolean resale;
 
-    @Size(max = 2000, message = "Description cannot exceed 2000 characters")
+    @Size(
+            max = 2000,
+            message = "Description cannot exceed 2000 characters"
+    )
     private String description;
 }
