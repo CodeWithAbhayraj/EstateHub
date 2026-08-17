@@ -70,7 +70,7 @@ public class LocationController {
     // AREA - GET
     // =====================================================
 
-    // Get areas by city
+    // Get all areas inside a city
     @GetMapping("/cities/{cityId}/areas")
     public List<AreaResponse> getAreasByCity(
             @PathVariable Long cityId
@@ -87,7 +87,10 @@ public class LocationController {
             @RequestParam Long cityId
     ) {
 
-        return locationService.searchArea(name, cityId);
+        return locationService.searchArea(
+                name,
+                cityId
+        );
     }
 
 
@@ -110,16 +113,24 @@ public class LocationController {
 
 
     // =====================================================
-    // PROPERTY TYPE - GET
+    // PROPERTY TYPE - GET BY AREA
     // =====================================================
 
-    // Get all active property types
-    @GetMapping("/property-types")
-    public List<PropertyTypeResponse> getAllPropertyTypes() {
+    // Get all active property types inside an area
+    @GetMapping("/areas/{areaId}/property-types")
+    public List<PropertyTypeResponse> getPropertyTypesByArea(
+            @PathVariable Long areaId
+    ) {
 
-        return locationService.getAllPropertyTypes();
+        return locationService.getPropertyTypesByArea(
+                areaId
+        );
     }
 
+
+    // =====================================================
+    // PROPERTY TYPE - GET BY ID
+    // =====================================================
 
     // Get property type by ID
     @GetMapping("/property-types/{id}")
@@ -127,17 +138,27 @@ public class LocationController {
             @PathVariable Long id
     ) {
 
-        return locationService.getPropertyTypeById(id);
+        return locationService.getPropertyTypeById(
+                id
+        );
     }
 
 
-    // Search property type by exact name
+    // =====================================================
+    // PROPERTY TYPE - SEARCH
+    // =====================================================
+
+    // Search property type inside an area
     @GetMapping("/property-types/search")
     public PropertyTypeResponse searchPropertyType(
-            @RequestParam String name
+            @RequestParam String name,
+            @RequestParam Long areaId
     ) {
 
-        return locationService.searchPropertyType(name);
+        return locationService.searchPropertyType(
+                name,
+                areaId
+        );
     }
 
 
@@ -145,13 +166,16 @@ public class LocationController {
     // PROPERTY TYPE - CREATE
     // =====================================================
 
-    // Admin creates property type
-    @PostMapping("/property-types")
+    // Admin creates property type inside an area
+    @PostMapping("/areas/{areaId}/property-types")
     public PropertyTypeResponse createPropertyType(
+            @PathVariable Long areaId,
             @Valid @RequestBody PropertyTypeRequest request
     ) {
 
-        return locationService.createPropertyType(request);
+        return locationService.createPropertyType(
+                areaId,
+                request
+        );
     }
 }
-

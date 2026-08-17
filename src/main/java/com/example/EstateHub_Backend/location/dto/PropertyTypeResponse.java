@@ -13,10 +13,13 @@ public class PropertyTypeResponse {
 
     private String name;
 
+    private Long areaId;
+
+    private String areaName;
+
     private Boolean enabled;
 
     private LocalDateTime createdAt;
 
     private LocalDateTime updatedAt;
 }
-

@@ -1,5 +1,4 @@
-
-        package com.example.EstateHub_Backend.location;
+package com.example.EstateHub_Backend.location;
 
 import com.example.EstateHub_Backend.location.dto.AreaRequest;
 import com.example.EstateHub_Backend.location.dto.AreaResponse;
@@ -21,6 +20,7 @@ public class LocationService {
     private final AreaRepository areaRepository;
     private final PropertyTypeRepository propertyTypeRepository;
 
+
     // =====================================================
     // CITY
     // =====================================================
@@ -28,8 +28,10 @@ public class LocationService {
     @Transactional
     public CityResponse createCity(CityRequest request) {
 
-        if (request == null || request.getName() == null ||
+        if (request == null ||
+                request.getName() == null ||
                 request.getName().trim().isEmpty()) {
+
             throw new RuntimeException("City name is required");
         }
 
@@ -74,7 +76,8 @@ public class LocationService {
 
     public CityResponse searchCity(String name) {
 
-        City city = cityRepository.findByNameIgnoreCase(name.trim())
+        City city = cityRepository
+                .findByNameIgnoreCase(name.trim())
                 .orElseThrow(() ->
                         new RuntimeException(
                                 "City not found: " + name
@@ -95,8 +98,10 @@ public class LocationService {
             AreaRequest request
     ) {
 
-        if (request == null || request.getName() == null ||
+        if (request == null ||
+                request.getName() == null ||
                 request.getName().trim().isEmpty()) {
+
             throw new RuntimeException("Area name is required");
         }
 
@@ -113,6 +118,7 @@ public class LocationService {
                 areaName,
                 cityId
         )) {
+
             throw new RuntimeException(
                     "Area already exists in this city"
             );
@@ -133,6 +139,7 @@ public class LocationService {
     public List<AreaResponse> getAreasByCity(Long cityId) {
 
         if (!cityRepository.existsById(cityId)) {
+
             throw new RuntimeException(
                     "City not found with id: " + cityId
             );
@@ -172,75 +179,139 @@ public class LocationService {
 
     @Transactional
     public PropertyTypeResponse createPropertyType(
+            Long areaId,
             PropertyTypeRequest request
     ) {
 
-        if (request == null || request.getName() == null ||
+        if (request == null ||
+                request.getName() == null ||
                 request.getName().trim().isEmpty()) {
+
             throw new RuntimeException(
                     "Property type name is required"
             );
         }
 
-        String propertyTypeName = request.getName().trim();
+        // -------------------------------------------------
+        // Check Area exists
+        // -------------------------------------------------
 
-        if (propertyTypeRepository.existsByNameIgnoreCase(
-                propertyTypeName
-        )) {
+        Area area = areaRepository.findById(areaId)
+                .orElseThrow(() ->
+                        new RuntimeException(
+                                "Area not found with id: " + areaId
+                        )
+                );
+
+        String propertyTypeName =
+                request.getName().trim();
+
+        // -------------------------------------------------
+        // Check duplicate inside same Area
+        // -------------------------------------------------
+
+        if (propertyTypeRepository
+                .existsByNameIgnoreCaseAndAreaId(
+                        propertyTypeName,
+                        areaId
+                )) {
+
             throw new RuntimeException(
-                    "Property type already exists"
+                    "Property type already exists in this area"
             );
         }
 
-        PropertyType propertyType = new PropertyType();
+        // -------------------------------------------------
+        // Create Property Type
+        // -------------------------------------------------
+
+        PropertyType propertyType =
+                new PropertyType();
 
         propertyType.setName(propertyTypeName);
+        propertyType.setArea(area);
         propertyType.setEnabled(true);
 
         PropertyType savedPropertyType =
                 propertyTypeRepository.save(propertyType);
 
-        return mapPropertyTypeToResponse(savedPropertyType);
+        return mapPropertyTypeToResponse(
+                savedPropertyType
+        );
     }
 
 
-    public List<PropertyTypeResponse> getAllPropertyTypes() {
+    // =====================================================
+    // GET PROPERTY TYPES BY AREA
+    // =====================================================
 
-        return propertyTypeRepository.findByEnabledTrue()
+    public List<PropertyTypeResponse> getPropertyTypesByArea(
+            Long areaId
+    ) {
+
+        if (!areaRepository.existsById(areaId)) {
+
+            throw new RuntimeException(
+                    "Area not found with id: " + areaId
+            );
+        }
+
+        return propertyTypeRepository
+                .findByAreaIdAndEnabledTrue(areaId)
                 .stream()
                 .map(this::mapPropertyTypeToResponse)
                 .toList();
     }
 
 
-    public PropertyTypeResponse getPropertyTypeById(Long id) {
+    // =====================================================
+    // GET PROPERTY TYPE BY ID
+    // =====================================================
+
+    public PropertyTypeResponse getPropertyTypeById(
+            Long id
+    ) {
 
         PropertyType propertyType =
                 propertyTypeRepository.findById(id)
                         .orElseThrow(() ->
                                 new RuntimeException(
-                                        "Property type not found with id: " + id
+                                        "Property type not found with id: "
+                                                + id
                                 )
                         );
 
-        return mapPropertyTypeToResponse(propertyType);
+        return mapPropertyTypeToResponse(
+                propertyType
+        );
     }
 
 
+    // =====================================================
+    // SEARCH PROPERTY TYPE INSIDE AREA
+    // =====================================================
+
     public PropertyTypeResponse searchPropertyType(
-            String name
+            String name,
+            Long areaId
     ) {
 
         PropertyType propertyType =
                 propertyTypeRepository
-                        .findByNameIgnoreCase(name.trim())
+                        .findByNameIgnoreCaseAndAreaId(
+                                name.trim(),
+                                areaId
+                        )
                         .orElseThrow(() ->
                                 new RuntimeException(
-                                        "Property type not found: " + name
+                                        "Property type not found: "
+                                                + name
                                 )
                         );
 
-        return mapPropertyTypeToResponse(propertyType);
+        return mapPropertyTypeToResponse(
+                propertyType
+        );
     }
 
 
@@ -248,16 +319,24 @@ public class LocationService {
     // ENTITY → CITY RESPONSE
     // =====================================================
 
-    private CityResponse mapCityToResponse(City city) {
+    private CityResponse mapCityToResponse(
+            City city
+    ) {
 
-        CityResponse response = new CityResponse();
+        CityResponse response =
+                new CityResponse();
 
         response.setId(city.getId());
         response.setName(city.getName());
         response.setEnabled(city.getEnabled());
 
-        response.setCreatedAt(city.getCreatedAt());
-        response.setUpdatedAt(city.getUpdatedAt());
+        response.setCreatedAt(
+                city.getCreatedAt()
+        );
+
+        response.setUpdatedAt(
+                city.getUpdatedAt()
+        );
 
         return response;
     }
@@ -267,21 +346,34 @@ public class LocationService {
     // ENTITY → AREA RESPONSE
     // =====================================================
 
-    private AreaResponse mapAreaToResponse(Area area) {
+    private AreaResponse mapAreaToResponse(
+            Area area
+    ) {
 
-        AreaResponse response = new AreaResponse();
+        AreaResponse response =
+                new AreaResponse();
 
         response.setId(area.getId());
         response.setName(area.getName());
         response.setEnabled(area.getEnabled());
 
-        response.setCreatedAt(area.getCreatedAt());
-        response.setUpdatedAt(area.getUpdatedAt());
+        response.setCreatedAt(
+                area.getCreatedAt()
+        );
+
+        response.setUpdatedAt(
+                area.getUpdatedAt()
+        );
 
         if (area.getCity() != null) {
 
-            response.setCityId(area.getCity().getId());
-            response.setCityName(area.getCity().getName());
+            response.setCityId(
+                    area.getCity().getId()
+            );
+
+            response.setCityName(
+                    area.getCity().getName()
+            );
         }
 
         return response;
@@ -299,14 +391,41 @@ public class LocationService {
         PropertyTypeResponse response =
                 new PropertyTypeResponse();
 
-        response.setId(propertyType.getId());
-        response.setName(propertyType.getName());
-        response.setEnabled(propertyType.getEnabled());
+        response.setId(
+                propertyType.getId()
+        );
 
-        response.setCreatedAt(propertyType.getCreatedAt());
-        response.setUpdatedAt(propertyType.getUpdatedAt());
+        response.setName(
+                propertyType.getName()
+        );
+
+        response.setEnabled(
+                propertyType.getEnabled()
+        );
+
+        response.setCreatedAt(
+                propertyType.getCreatedAt()
+        );
+
+        response.setUpdatedAt(
+                propertyType.getUpdatedAt()
+        );
+
+        // -------------------------------------------------
+        // AREA DETAILS
+        // -------------------------------------------------
+
+        if (propertyType.getArea() != null) {
+
+            response.setAreaId(
+                    propertyType.getArea().getId()
+            );
+
+            response.setAreaName(
+                    propertyType.getArea().getName()
+            );
+        }
 
         return response;
     }
 }
-
