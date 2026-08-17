@@ -21,7 +21,6 @@ public class LocationService {
     private final AreaRepository areaRepository;
     private final PropertyTypeRepository propertyTypeRepository;
 
-
     // =====================================================
     // CITY
     // =====================================================
