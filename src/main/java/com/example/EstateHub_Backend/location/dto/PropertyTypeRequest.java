@@ -16,4 +16,5 @@ public class PropertyTypeRequest {
             message = "Property type name must be between 2 and 100 characters"
     )
     private String name;
+
 }

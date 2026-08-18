@@ -9,6 +9,7 @@ import java.time.LocalDateTime;
 @Setter
 public class PropertyTypeResponse {
 
+
     private Long id;
 
     private String name;
@@ -22,4 +23,5 @@ public class PropertyTypeResponse {
     private LocalDateTime createdAt;
 
     private LocalDateTime updatedAt;
+
 }

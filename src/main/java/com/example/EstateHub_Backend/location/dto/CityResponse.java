@@ -18,4 +18,5 @@ public class CityResponse {
     private LocalDateTime createdAt;
 
     private LocalDateTime updatedAt;
+
 }
