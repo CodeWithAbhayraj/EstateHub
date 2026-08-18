@@ -14,6 +14,7 @@ import java.time.LocalDateTime;
                         columnNames = {"name", "area_id"}
                 )
         }
+
 )
 @Getter
 @Setter
@@ -30,6 +31,7 @@ public class PropertyType {
     // AREA RELATION
     // =====================================================
 
+
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(
             name = "area_id",
@@ -40,6 +42,7 @@ public class PropertyType {
     // =====================================================
     // STATUS
     // =====================================================
+
 
     @Column(nullable = false)
     private Boolean enabled = true;
@@ -63,10 +66,10 @@ public class PropertyType {
             enabled = true;
         }
     }
-
     @PreUpdate
     protected void onUpdate() {
 
         updatedAt = LocalDateTime.now();
     }
+
 }
