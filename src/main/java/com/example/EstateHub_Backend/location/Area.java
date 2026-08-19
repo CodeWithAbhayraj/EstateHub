@@ -19,8 +19,6 @@ import java.time.LocalDateTime;
 @Setter
 public class Area {
 
-
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -33,6 +31,7 @@ public class Area {
             name = "city_id",
             nullable = false
     )
+
     private City city;
 
     @Column(nullable = false)
