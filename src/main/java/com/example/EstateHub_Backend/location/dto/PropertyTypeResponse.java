@@ -24,4 +24,5 @@ public class PropertyTypeResponse {
 
     private LocalDateTime updatedAt;
 
+
 }
