@@ -171,7 +171,9 @@ public class LocationController {
     public PropertyTypeResponse createPropertyType(
             @PathVariable Long areaId,
             @Valid @RequestBody PropertyTypeRequest request
-    ) {
+    )
+
+    {
 
         return locationService.createPropertyType(
                 areaId,
