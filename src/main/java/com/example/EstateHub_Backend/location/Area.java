@@ -19,6 +19,8 @@ import java.time.LocalDateTime;
 @Setter
 public class Area {
 
+
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
