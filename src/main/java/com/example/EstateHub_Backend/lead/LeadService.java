@@ -3,6 +3,8 @@ package com.example.EstateHub_Backend.lead;
 import com.example.EstateHub_Backend.lead.dto.LeadRequest;
 import com.example.EstateHub_Backend.lead.dto.LeadResponse;
 import com.example.EstateHub_Backend.lead.dto.LeadStatusUpdateRequest;
+import com.example.EstateHub_Backend.notification.NotificationService;
+import com.example.EstateHub_Backend.notification.NotificationType;
 import com.example.EstateHub_Backend.property.Property;
 import com.example.EstateHub_Backend.property.PropertyRepository;
 import com.example.EstateHub_Backend.property.PropertyStatus;
@@ -13,6 +15,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -24,10 +27,15 @@ public class LeadService {
     private final UserRepository userRepository;
     private final PropertyRepository propertyRepository;
 
+    // Notification service
+    private final NotificationService notificationService;
+
+
     // ==========================================
     // CREATE LEAD
     // ==========================================
 
+    @Transactional
     public LeadResponse createLead(LeadRequest request) {
 
         Authentication authentication =
@@ -77,8 +85,39 @@ public class LeadService {
 
         Lead savedLead = leadRepository.save(lead);
 
+
+        // ==========================================
+        // NOTIFICATION - ADMIN
+        // ==========================================
+
+        List<User> admins = userRepository.findAll()
+                .stream()
+                .filter(user ->
+                        user.getRole() == Role.ADMIN ||
+                                user.getRole() == Role.SUPER_ADMIN
+                )
+                .toList();
+
+        String propertyTitle = property.getTitle();
+
+        String message =
+                "New lead created for property: "
+                        + propertyTitle;
+
+        for (User admin : admins) {
+
+            notificationService.createNotification(
+                    admin,
+                    NotificationType.LEAD_CREATED,
+                    message,
+                    savedLead.getId()
+            );
+        }
+
+
         return mapToResponse(savedLead);
     }
+
 
     // ==========================================
     // ADMIN - GET ALL LEADS
@@ -91,6 +130,7 @@ public class LeadService {
                 .map(this::mapToResponse)
                 .toList();
     }
+
 
     // ==========================================
     // ADMIN - GET LEAD BY ID
@@ -106,10 +146,12 @@ public class LeadService {
         return mapToResponse(lead);
     }
 
+
     // ==========================================
     // ADMIN - UPDATE LEAD STATUS
     // ==========================================
 
+    @Transactional
     public LeadResponse updateLeadStatus(
             Long id,
             LeadStatusUpdateRequest request
@@ -125,8 +167,33 @@ public class LeadService {
 
         Lead updatedLead = leadRepository.save(lead);
 
+
+        // ==========================================
+        // NOTIFICATION - BUYER
+        // ==========================================
+
+        User buyer = lead.getBuyer();
+
+        String propertyTitle =
+                lead.getProperty().getTitle();
+
+        String message =
+                "Your lead for property '"
+                        + propertyTitle
+                        + "' has been updated to "
+                        + request.getStatus();
+
+        notificationService.createNotification(
+                buyer,
+                NotificationType.LEAD_UPDATED,
+                message,
+                updatedLead.getId()
+        );
+
+
         return mapToResponse(updatedLead);
     }
+
 
     // ==========================================
     // ENTITY → RESPONSE
@@ -136,17 +203,33 @@ public class LeadService {
 
         return LeadResponse.builder()
                 .id(lead.getId())
-                .propertyId(lead.getProperty().getId())
-                .propertyTitle(lead.getProperty().getTitle())
-                .budget(lead.getBudget())
+                .propertyId(
+                        lead.getProperty().getId()
+                )
+                .propertyTitle(
+                        lead.getProperty().getTitle()
+                )
+                .budget(
+                        lead.getBudget()
+                )
                 .preferredVisitDate(
                         lead.getPreferredVisitDate()
                 )
-                .message(lead.getMessage())
-                .status(lead.getStatus())
-                .remarks(lead.getRemarks())
-                .createdAt(lead.getCreatedAt())
-                .updatedAt(lead.getUpdatedAt())
+                .message(
+                        lead.getMessage()
+                )
+                .status(
+                        lead.getStatus()
+                )
+                .remarks(
+                        lead.getRemarks()
+                )
+                .createdAt(
+                        lead.getCreatedAt()
+                )
+                .updatedAt(
+                        lead.getUpdatedAt()
+                )
                 .build();
     }
 }

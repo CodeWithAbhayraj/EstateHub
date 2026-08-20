@@ -1,3 +1,4 @@
+
 package com.example.EstateHub_Backend.property;
 
 import com.example.EstateHub_Backend.location.Area;
@@ -6,8 +7,11 @@ import com.example.EstateHub_Backend.location.City;
 import com.example.EstateHub_Backend.location.CityRepository;
 import com.example.EstateHub_Backend.location.PropertyType;
 import com.example.EstateHub_Backend.location.PropertyTypeRepository;
+import com.example.EstateHub_Backend.notification.NotificationService;
+import com.example.EstateHub_Backend.notification.NotificationType;
 import com.example.EstateHub_Backend.property.dto.PropertyRequest;
 import com.example.EstateHub_Backend.property.dto.PropertyResponse;
+import com.example.EstateHub_Backend.user.Role;
 import com.example.EstateHub_Backend.user.User;
 import com.example.EstateHub_Backend.user.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -28,6 +32,9 @@ public class PropertyService {
     private final AreaRepository areaRepository;
     private final PropertyTypeRepository propertyTypeRepository;
 
+    // Notification service
+    private final NotificationService notificationService;
+
 
     // ==========================================
     // CREATE PROPERTY
@@ -44,29 +51,32 @@ public class PropertyService {
         City city = cityRepository.findById(request.getCityId())
                 .orElseThrow(() ->
                         new RuntimeException(
-                                "City not found with id: " + request.getCityId()
+                                "City not found with id: "
+                                        + request.getCityId()
                         )
                 );
 
         Area area = areaRepository.findById(request.getAreaId())
                 .orElseThrow(() ->
                         new RuntimeException(
-                                "Area not found with id: " + request.getAreaId()
+                                "Area not found with id: "
+                                        + request.getAreaId()
                         )
                 );
 
         PropertyType propertyType =
-                propertyTypeRepository.findById(request.getPropertyTypeId())
-                        .orElseThrow(() ->
-                                new RuntimeException(
-                                        "Property type not found with id: "
-                                                + request.getPropertyTypeId()
-                                )
-                        );
+                propertyTypeRepository.findById(
+                        request.getPropertyTypeId()
+                ).orElseThrow(() ->
+                        new RuntimeException(
+                                "Property type not found with id: "
+                                        + request.getPropertyTypeId()
+                        )
+                );
 
-        // Important:
         // Area must belong to selected city
         if (!area.getCity().getId().equals(city.getId())) {
+
             throw new RuntimeException(
                     "Selected area does not belong to selected city"
             );
@@ -106,7 +116,9 @@ public class PropertyService {
 
         Property property = propertyRepository.findById(id)
                 .orElseThrow(() ->
-                        new RuntimeException("Property not found")
+                        new RuntimeException(
+                                "Property not found"
+                        )
                 );
 
         return mapToResponse(property);
@@ -161,6 +173,7 @@ public class PropertyService {
         User seller = getUserByEmail(userEmail);
 
         if (!property.getSeller().getId().equals(seller.getId())) {
+
             throw new AccessDeniedException(
                     "You can update only your own property"
             );
@@ -193,6 +206,7 @@ public class PropertyService {
                 );
 
         if (!area.getCity().getId().equals(city.getId())) {
+
             throw new RuntimeException(
                     "Selected area does not belong to selected city"
             );
@@ -236,6 +250,7 @@ public class PropertyService {
         User seller = getUserByEmail(userEmail);
 
         if (!property.getSeller().getId().equals(seller.getId())) {
+
             throw new AccessDeniedException(
                     "You can delete only your own property"
             );
@@ -249,6 +264,7 @@ public class PropertyService {
     // SUBMIT FOR APPROVAL
     // ==========================================
 
+    @Transactional
     public PropertyResponse submitForApproval(
             Long id,
             String userEmail
@@ -259,12 +275,14 @@ public class PropertyService {
         User seller = getUserByEmail(userEmail);
 
         if (!property.getSeller().getId().equals(seller.getId())) {
+
             throw new AccessDeniedException(
                     "You can submit only your own property"
             );
         }
 
         if (property.getStatus() != PropertyStatus.DRAFT) {
+
             throw new IllegalStateException(
                     "Only draft properties can be submitted"
             );
@@ -272,9 +290,36 @@ public class PropertyService {
 
         property.setStatus(PropertyStatus.PENDING_APPROVAL);
 
-        return mapToResponse(
-                propertyRepository.save(property)
+        Property savedProperty =
+                propertyRepository.save(property);
+
+
+        // ==========================================
+        // NOTIFY ADMIN + SUPER ADMIN
+        // ==========================================
+
+        List<User> admins = userRepository.findByRoleIn(
+                List.of(
+                        Role.ADMIN,
+                        Role.SUPER_ADMIN
+                )
         );
+
+        String message =
+                "New property submitted for approval: "
+                        + property.getTitle();
+
+        for (User admin : admins) {
+
+            notificationService.createNotification(
+                    admin,
+                    NotificationType.PROPERTY_SUBMITTED,
+                    message,
+                    property.getId()
+            );
+        }
+
+        return mapToResponse(savedProperty);
     }
 
 
@@ -282,11 +327,13 @@ public class PropertyService {
     // ADMIN APPROVE
     // ==========================================
 
+    @Transactional
     public PropertyResponse approveProperty(Long id) {
 
         Property property = getProperty(id);
 
         if (property.getStatus() != PropertyStatus.PENDING_APPROVAL) {
+
             throw new IllegalStateException(
                     "Only pending properties can be approved"
             );
@@ -295,9 +342,23 @@ public class PropertyService {
         property.setStatus(PropertyStatus.PUBLISHED);
         property.setRejectionReason(null);
 
-        return mapToResponse(
-                propertyRepository.save(property)
+        Property savedProperty =
+                propertyRepository.save(property);
+
+
+        // ==========================================
+        // NOTIFY SELLER
+        // ==========================================
+
+        notificationService.createNotification(
+                property.getSeller(),
+                NotificationType.PROPERTY_APPROVED,
+                "Your property has been approved: "
+                        + property.getTitle(),
+                property.getId()
         );
+
+        return mapToResponse(savedProperty);
     }
 
 
@@ -305,6 +366,7 @@ public class PropertyService {
     // ADMIN REJECT
     // ==========================================
 
+    @Transactional
     public PropertyResponse rejectProperty(
             Long id,
             String reason
@@ -313,6 +375,7 @@ public class PropertyService {
         Property property = getProperty(id);
 
         if (property.getStatus() != PropertyStatus.PENDING_APPROVAL) {
+
             throw new IllegalStateException(
                     "Only pending properties can be rejected"
             );
@@ -321,9 +384,28 @@ public class PropertyService {
         property.setStatus(PropertyStatus.REJECTED);
         property.setRejectionReason(reason);
 
-        return mapToResponse(
-                propertyRepository.save(property)
+        Property savedProperty =
+                propertyRepository.save(property);
+
+
+        // ==========================================
+        // NOTIFY SELLER
+        // ==========================================
+
+        String message =
+                "Your property has been rejected: "
+                        + property.getTitle()
+                        + ". Reason: "
+                        + reason;
+
+        notificationService.createNotification(
+                property.getSeller(),
+                NotificationType.PROPERTY_REJECTED,
+                message,
+                property.getId()
         );
+
+        return mapToResponse(savedProperty);
     }
 
 
@@ -335,7 +417,9 @@ public class PropertyService {
 
         return propertyRepository.findById(id)
                 .orElseThrow(() ->
-                        new RuntimeException("Property not found")
+                        new RuntimeException(
+                                "Property not found"
+                        )
                 );
     }
 
@@ -344,7 +428,9 @@ public class PropertyService {
 
         return userRepository.findByEmail(email)
                 .orElseThrow(() ->
-                        new RuntimeException("User not found")
+                        new RuntimeException(
+                                "User not found"
+                        )
                 );
     }
 
@@ -400,3 +486,4 @@ public class PropertyService {
                 .build();
     }
 }
+

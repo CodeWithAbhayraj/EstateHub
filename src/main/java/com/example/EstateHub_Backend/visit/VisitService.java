@@ -1,7 +1,10 @@
+
 package com.example.EstateHub_Backend.visit;
 
 import com.example.EstateHub_Backend.lead.Lead;
 import com.example.EstateHub_Backend.lead.LeadRepository;
+import com.example.EstateHub_Backend.notification.NotificationService;
+import com.example.EstateHub_Backend.notification.NotificationType;
 import com.example.EstateHub_Backend.property.Property;
 import com.example.EstateHub_Backend.property.PropertyRepository;
 import com.example.EstateHub_Backend.user.Role;
@@ -27,6 +30,10 @@ public class VisitService {
     private final LeadRepository leadRepository;
     private final PropertyRepository propertyRepository;
 
+    // Notification service
+    private final NotificationService notificationService;
+
+
     // =====================================================
     // BUYER - CREATE VISIT
     // =====================================================
@@ -38,7 +45,9 @@ public class VisitService {
 
         // Only BUYER can create visit
         if (buyer.getRole() != Role.BUYER) {
-            throw new RuntimeException("Only buyers can create visits");
+            throw new RuntimeException(
+                    "Only buyers can create visits"
+            );
         }
 
         // Find lead
@@ -57,7 +66,8 @@ public class VisitService {
         }
 
         // Find property
-        Property property = propertyRepository.findById(request.getPropertyId())
+        Property property = propertyRepository
+                .findById(request.getPropertyId())
                 .orElseThrow(() ->
                         new RuntimeException("Property not found")
                 );
@@ -77,7 +87,6 @@ public class VisitService {
         visit.setLeadId(lead.getId());
         visit.setPropertyId(property.getId());
 
-        // IMPORTANT:
         // Buyer ID comes from logged-in JWT user
         visit.setBuyerId(buyer.getId());
 
@@ -88,8 +97,39 @@ public class VisitService {
 
         Visit savedVisit = visitRepository.save(visit);
 
+
+        // =====================================================
+        // NOTIFICATION - ADMIN / SUPER ADMIN
+        // =====================================================
+
+        List<User> admins = userRepository.findByRoleIn(
+                List.of(Role.ADMIN, Role.SUPER_ADMIN)
+        );
+
+        String propertyTitle = property.getTitle();
+
+        String message =
+                "New visit scheduled for property '"
+                        + propertyTitle
+                        + "' on "
+                        + savedVisit.getVisitDate()
+                        + " at "
+                        + savedVisit.getVisitTime();
+
+        for (User admin : admins) {
+
+            notificationService.createNotification(
+                    admin,
+                    NotificationType.VISIT_CREATED,
+                    message,
+                    savedVisit.getId()
+            );
+        }
+
+
         return mapToResponse(savedVisit);
     }
+
 
     // =====================================================
     // GET VISIT BY ID
@@ -107,7 +147,9 @@ public class VisitService {
         User currentUser = getLoggedInUser();
 
         // ADMIN can see everything
-        if (currentUser.getRole() == Role.ADMIN) {
+        if (currentUser.getRole() == Role.ADMIN ||
+                currentUser.getRole() == Role.SUPER_ADMIN) {
+
             return mapToResponse(visit);
         }
 
@@ -130,6 +172,7 @@ public class VisitService {
         );
     }
 
+
     // =====================================================
     // ADMIN - GET ALL VISITS
     // =====================================================
@@ -141,6 +184,7 @@ public class VisitService {
                 .map(this::mapToResponse)
                 .toList();
     }
+
 
     // =====================================================
     // BUYER - GET OWN VISITS
@@ -162,6 +206,7 @@ public class VisitService {
                 .toList();
     }
 
+
     // =====================================================
     // ADMIN - GET VISITS BY BUYER
     // =====================================================
@@ -173,6 +218,7 @@ public class VisitService {
                 .map(this::mapToResponse)
                 .toList();
     }
+
 
     // =====================================================
     // ADMIN - GET VISITS BY LEAD
@@ -186,6 +232,7 @@ public class VisitService {
                 .toList();
     }
 
+
     // =====================================================
     // ADMIN - GET VISITS BY PROPERTY
     // =====================================================
@@ -197,6 +244,7 @@ public class VisitService {
                 .map(this::mapToResponse)
                 .toList();
     }
+
 
     // =====================================================
     // ADMIN - UPDATE VISIT STATUS
@@ -223,8 +271,44 @@ public class VisitService {
 
         Visit updatedVisit = visitRepository.save(visit);
 
+
+        // =====================================================
+        // NOTIFICATION - BUYER
+        // =====================================================
+
+        User buyer = userRepository.findById(
+                updatedVisit.getBuyerId()
+        ).orElseThrow(() ->
+                new RuntimeException("Buyer not found")
+        );
+
+        Property property = propertyRepository.findById(
+                updatedVisit.getPropertyId()
+        ).orElseThrow(() ->
+                new RuntimeException("Property not found")
+        );
+
+        String message =
+                "Your visit for property '"
+                        + property.getTitle()
+                        + "' has been updated to "
+                        + updatedVisit.getStatus()
+                        + ". Visit date: "
+                        + updatedVisit.getVisitDate()
+                        + " at "
+                        + updatedVisit.getVisitTime();
+
+        notificationService.createNotification(
+                buyer,
+                NotificationType.VISIT_UPDATED,
+                message,
+                updatedVisit.getId()
+        );
+
+
         return mapToResponse(updatedVisit);
     }
+
 
     // =====================================================
     // ADMIN - DELETE VISIT
@@ -242,6 +326,7 @@ public class VisitService {
 
         visitRepository.delete(visit);
     }
+
 
     // =====================================================
     // GET LOGGED-IN USER FROM JWT
@@ -270,6 +355,7 @@ public class VisitService {
                 );
     }
 
+
     // =====================================================
     // ENTITY -> RESPONSE
     // =====================================================
@@ -282,7 +368,6 @@ public class VisitService {
         response.setLeadId(visit.getLeadId());
         response.setPropertyId(visit.getPropertyId());
 
-        // Buyer ID
         response.setBuyerId(visit.getBuyerId());
 
         response.setVisitDate(visit.getVisitDate());
