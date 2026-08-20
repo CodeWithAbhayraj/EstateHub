@@ -3,10 +3,12 @@ package com.example.EstateHub_Backend.notification.dto;
 import com.example.EstateHub_Backend.notification.NotificationType;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.Setter;
 
 import java.time.LocalDateTime;
 
 @Getter
+@Setter
 @Builder
 public class NotificationResponse {
 
@@ -18,9 +20,9 @@ public class NotificationResponse {
 
     private Long referenceId;
 
-    private String referenceType;
-
-    private Boolean read;
+    private Boolean isRead;
 
     private LocalDateTime createdAt;
+
+    private LocalDateTime readAt;
 }

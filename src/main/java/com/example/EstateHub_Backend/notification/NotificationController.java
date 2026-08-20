@@ -3,7 +3,6 @@ package com.example.EstateHub_Backend.notification;
 import com.example.EstateHub_Backend.notification.dto.NotificationResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -17,54 +16,48 @@ public class NotificationController {
 
 
     // =====================================================
-    // GET ALL MY NOTIFICATIONS
+    // GET MY NOTIFICATIONS
     // =====================================================
 
     @GetMapping
-    public ResponseEntity<List<NotificationResponse>>
-    getMyNotifications(
-            Authentication authentication
-    ) {
+    public ResponseEntity<List<NotificationResponse>> getMyNotifications() {
 
         return ResponseEntity.ok(
-                notificationService.getMyNotifications(
-                        authentication.getName()
-                )
+                notificationService.getMyNotifications()
+                        .stream()
+                        .map(this::mapToResponse)
+                        .toList()
         );
     }
 
 
     // =====================================================
-    // GET UNREAD NOTIFICATIONS
+    // GET MY UNREAD NOTIFICATIONS
     // =====================================================
 
     @GetMapping("/unread")
     public ResponseEntity<List<NotificationResponse>>
-    getUnreadNotifications(
-            Authentication authentication
-    ) {
+    getMyUnreadNotifications() {
 
         return ResponseEntity.ok(
-                notificationService.getUnreadNotifications(
-                        authentication.getName()
-                )
+                notificationService
+                        .getMyUnreadNotifications()
+                        .stream()
+                        .map(this::mapToResponse)
+                        .toList()
         );
     }
 
 
     // =====================================================
-    // UNREAD COUNT
+    // GET UNREAD COUNT
     // =====================================================
 
     @GetMapping("/unread/count")
-    public ResponseEntity<Long> getUnreadCount(
-            Authentication authentication
-    ) {
+    public ResponseEntity<Long> getUnreadCount() {
 
         return ResponseEntity.ok(
-                notificationService.getUnreadCount(
-                        authentication.getName()
-                )
+                notificationService.getUnreadCount()
         );
     }
 
@@ -74,17 +67,15 @@ public class NotificationController {
     // =====================================================
 
     @PatchMapping("/{id}/read")
-    public ResponseEntity<Void> markAsRead(
-            @PathVariable Long id,
-            Authentication authentication
+    public ResponseEntity<NotificationResponse> markAsRead(
+            @PathVariable Long id
     ) {
 
-        notificationService.markAsRead(
-                id,
-                authentication.getName()
+        return ResponseEntity.ok(
+                mapToResponse(
+                        notificationService.markAsRead(id)
+                )
         );
-
-        return ResponseEntity.noContent().build();
     }
 
 
@@ -93,14 +84,32 @@ public class NotificationController {
     // =====================================================
 
     @PatchMapping("/read-all")
-    public ResponseEntity<Void> markAllAsRead(
-            Authentication authentication
+    public ResponseEntity<String> markAllAsRead() {
+
+        notificationService.markAllAsRead();
+
+        return ResponseEntity.ok(
+                "All notifications marked as read"
+        );
+    }
+
+
+    // =====================================================
+    // ENTITY → RESPONSE
+    // =====================================================
+
+    private NotificationResponse mapToResponse(
+            Notification notification
     ) {
 
-        notificationService.markAllAsRead(
-                authentication.getName()
-        );
-
-        return ResponseEntity.noContent().build();
+        return NotificationResponse.builder()
+                .id(notification.getId())
+                .type(notification.getType())
+                .message(notification.getMessage())
+                .referenceId(notification.getReferenceId())
+                .isRead(notification.getIsRead())
+                .createdAt(notification.getCreatedAt())
+                .readAt(notification.getReadAt())
+                .build();
     }
 }

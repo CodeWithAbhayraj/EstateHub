@@ -19,8 +19,8 @@ public class Notification {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // Notification kis user ko mili
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    // User who will receive this notification
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
@@ -34,35 +34,17 @@ public class Notification {
     private String message;
 
     // Related entity ID
-    // Example: Lead ID / Visit ID / Property ID / Deal ID
+    // Example: leadId / visitId / propertyId / dealId
     private Long referenceId;
 
-    // Kis module se notification aayi
-    @Column(length = 50)
-    private String referenceType;
-
-    // Read / Unread
+    // Whether user has read the notification
     @Column(nullable = false)
     @Builder.Default
-    private Boolean read = false;
+    private Boolean isRead = false;
 
     @Column(nullable = false, updatable = false)
-    private LocalDateTime createdAt;
+    @Builder.Default
+    private LocalDateTime createdAt = LocalDateTime.now();
 
-    private LocalDateTime updatedAt;
-
-    @PrePersist
-    protected void onCreate() {
-        createdAt = LocalDateTime.now();
-        updatedAt = LocalDateTime.now();
-
-        if (read == null) {
-            read = false;
-        }
-    }
-
-    @PreUpdate
-    protected void onUpdate() {
-        updatedAt = LocalDateTime.now();
-    }
+    private LocalDateTime readAt;
 }

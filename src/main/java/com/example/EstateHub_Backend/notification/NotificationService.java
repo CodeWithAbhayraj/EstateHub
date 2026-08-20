@@ -1,13 +1,14 @@
 package com.example.EstateHub_Backend.notification;
 
-import com.example.EstateHub_Backend.notification.dto.NotificationResponse;
 import com.example.EstateHub_Backend.user.User;
 import com.example.EstateHub_Backend.user.UserRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -23,29 +24,51 @@ public class NotificationService {
     // =====================================================
 
     @Transactional
-    public void createNotification(
-            Long userId,
+    public Notification createNotification(
+            User user,
             NotificationType type,
             String message,
-            Long referenceId,
-            String referenceType
+            Long referenceId
     ) {
-
-        User user = userRepository.findById(userId)
-                .orElseThrow(() ->
-                        new RuntimeException("User not found")
-                );
 
         Notification notification = Notification.builder()
                 .user(user)
                 .type(type)
                 .message(message)
                 .referenceId(referenceId)
-                .referenceType(referenceType)
-                .read(false)
+                .isRead(false)
+                .createdAt(LocalDateTime.now())
                 .build();
 
-        notificationRepository.save(notification);
+        return notificationRepository.save(notification);
+    }
+
+
+    // =====================================================
+    // GET LOGGED-IN USER
+    // =====================================================
+
+    private User getLoggedInUser() {
+
+        Authentication authentication =
+                SecurityContextHolder
+                        .getContext()
+                        .getAuthentication();
+
+        if (authentication == null ||
+                !authentication.isAuthenticated()) {
+
+            throw new RuntimeException(
+                    "User is not authenticated"
+            );
+        }
+
+        String email = authentication.getName();
+
+        return userRepository.findByEmail(email)
+                .orElseThrow(() ->
+                        new RuntimeException("User not found")
+                );
     }
 
 
@@ -53,64 +76,54 @@ public class NotificationService {
     // GET MY NOTIFICATIONS
     // =====================================================
 
-    public List<NotificationResponse> getMyNotifications(
-            String email
-    ) {
+    @Transactional(readOnly = true)
+    public List<Notification> getMyNotifications() {
 
-        User user = getUserByEmail(email);
+        User user = getLoggedInUser();
 
         return notificationRepository
-                .findByUserIdOrderByCreatedAtDesc(user.getId())
-                .stream()
-                .map(this::mapToResponse)
-                .toList();
+                .findByUserIdOrderByCreatedAtDesc(user.getId());
     }
 
 
     // =====================================================
-    // GET UNREAD NOTIFICATIONS
+    // GET MY UNREAD NOTIFICATIONS
     // =====================================================
 
-    public List<NotificationResponse> getUnreadNotifications(
-            String email
-    ) {
+    @Transactional(readOnly = true)
+    public List<Notification> getMyUnreadNotifications() {
 
-        User user = getUserByEmail(email);
+        User user = getLoggedInUser();
 
         return notificationRepository
-                .findByUserIdAndReadFalseOrderByCreatedAtDesc(
+                .findByUserIdAndIsReadFalseOrderByCreatedAtDesc(
                         user.getId()
-                )
-                .stream()
-                .map(this::mapToResponse)
-                .toList();
+                );
     }
 
 
     // =====================================================
-    // UNREAD COUNT
+    // GET UNREAD COUNT
     // =====================================================
 
-    public long getUnreadCount(String email) {
+    @Transactional(readOnly = true)
+    public long getUnreadCount() {
 
-        User user = getUserByEmail(email);
+        User user = getLoggedInUser();
 
         return notificationRepository
-                .countByUserIdAndReadFalse(user.getId());
+                .countByUserIdAndIsReadFalse(user.getId());
     }
 
 
     // =====================================================
-    // MARK AS READ
+    // MARK NOTIFICATION AS READ
     // =====================================================
 
     @Transactional
-    public void markAsRead(
-            Long notificationId,
-            String email
-    ) {
+    public Notification markAsRead(Long notificationId) {
 
-        User user = getUserByEmail(email);
+        User user = getLoggedInUser();
 
         Notification notification =
                 notificationRepository.findById(notificationId)
@@ -120,17 +133,19 @@ public class NotificationService {
                                 )
                         );
 
+        // User can mark only their own notification
         if (!notification.getUser().getId()
                 .equals(user.getId())) {
 
-            throw new AccessDeniedException(
-                    "You can update only your own notification"
+            throw new RuntimeException(
+                    "You are not allowed to access this notification"
             );
         }
 
-        notification.setRead(true);
+        notification.setIsRead(true);
+        notification.setReadAt(LocalDateTime.now());
 
-        notificationRepository.save(notification);
+        return notificationRepository.save(notification);
     }
 
 
@@ -139,49 +154,24 @@ public class NotificationService {
     // =====================================================
 
     @Transactional
-    public void markAllAsRead(String email) {
+    public void markAllAsRead() {
 
-        User user = getUserByEmail(email);
+        User user = getLoggedInUser();
 
         List<Notification> notifications =
                 notificationRepository
-                        .findByUserIdAndReadFalseOrderByCreatedAtDesc(
+                        .findByUserIdAndIsReadFalseOrderByCreatedAtDesc(
                                 user.getId()
                         );
 
-        notifications.forEach(
-                notification -> notification.setRead(true)
-        );
+        LocalDateTime now = LocalDateTime.now();
+
+        for (Notification notification : notifications) {
+
+            notification.setIsRead(true);
+            notification.setReadAt(now);
+        }
 
         notificationRepository.saveAll(notifications);
-    }
-
-
-    // =====================================================
-    // PRIVATE METHODS
-    // =====================================================
-
-    private User getUserByEmail(String email) {
-
-        return userRepository.findByEmail(email)
-                .orElseThrow(() ->
-                        new RuntimeException("User not found")
-                );
-    }
-
-
-    private NotificationResponse mapToResponse(
-            Notification notification
-    ) {
-
-        return NotificationResponse.builder()
-                .id(notification.getId())
-                .type(notification.getType())
-                .message(notification.getMessage())
-                .referenceId(notification.getReferenceId())
-                .referenceType(notification.getReferenceType())
-                .read(notification.getRead())
-                .createdAt(notification.getCreatedAt())
-                .build();
     }
 }
