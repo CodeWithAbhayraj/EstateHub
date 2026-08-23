@@ -35,6 +35,7 @@ public class Deal {
             name = "lead_id",
             nullable = false,
             unique = true
+
     )
     private Lead lead;
 
