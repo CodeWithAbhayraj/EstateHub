@@ -19,6 +19,7 @@ import java.time.LocalDateTime;
 @Builder
 public class Property {
 
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
