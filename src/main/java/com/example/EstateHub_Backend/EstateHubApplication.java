@@ -10,4 +10,5 @@ public class EstateHubApplication {
 		SpringApplication.run(EstateHubApplication.class, args);
 	}
 
+
 }
