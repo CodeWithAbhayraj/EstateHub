@@ -16,7 +16,8 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
-public class DealService {
+public class DealService
+{
 
     private final DealRepository dealRepository;
     private final LeadRepository leadRepository;
