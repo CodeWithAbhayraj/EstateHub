@@ -1,3 +1,4 @@
+
 package com.example.EstateHub_Backend.deal;
 
 import com.example.EstateHub_Backend.deal.dto.DealRequest;
@@ -6,6 +7,12 @@ import com.example.EstateHub_Backend.deal.dto.DealStatusUpdateRequest;
 import com.example.EstateHub_Backend.lead.Lead;
 import com.example.EstateHub_Backend.lead.LeadRepository;
 import com.example.EstateHub_Backend.lead.LeadStatus;
+import com.example.EstateHub_Backend.notification.NotificationService;
+import com.example.EstateHub_Backend.notification.NotificationType;
+import com.example.EstateHub_Backend.property.Property;
+import com.example.EstateHub_Backend.user.Role;
+import com.example.EstateHub_Backend.user.User;
+import com.example.EstateHub_Backend.user.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,11 +23,13 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
-public class DealService
-{
+public class DealService {
 
     private final DealRepository dealRepository;
     private final LeadRepository leadRepository;
+    private final NotificationService notificationService;
+    private final UserRepository userRepository;
+
 
     // ==========================================
     // CREATE DEAL
@@ -68,8 +77,62 @@ public class DealService
 
         Deal savedDeal = dealRepository.save(deal);
 
+        // ==========================================
+        // AUTOMATIC DEAL CREATED NOTIFICATIONS
+        // ==========================================
+
+        Lead savedLead = savedDeal.getLead();
+
+        User buyer = savedLead.getBuyer();
+        User seller = savedLead.getProperty().getSeller();
+
+        String propertyTitle =
+                savedLead.getProperty().getTitle();
+
+        String message =
+                "Deal created for property: "
+                        + propertyTitle
+                        + ". Deal amount: ₹"
+                        + savedDeal.getDealAmount();
+
+        // Buyer notification
+        notificationService.createNotification(
+                buyer,
+                NotificationType.DEAL_CREATED,
+                message,
+                savedDeal.getId()
+        );
+
+        // Seller notification
+        notificationService.createNotification(
+                seller,
+                NotificationType.DEAL_CREATED,
+                message,
+                savedDeal.getId()
+        );
+
+        // Admin / Broker notifications
+        List<User> admins =
+                userRepository.findAll()
+                        .stream()
+                        .filter(user ->
+                                user.getRole() == Role.ADMIN
+                        )
+                        .toList();
+
+        for (User admin : admins) {
+
+            notificationService.createNotification(
+                    admin,
+                    NotificationType.DEAL_CREATED,
+                    message,
+                    savedDeal.getId()
+            );
+        }
+
         return mapToResponse(savedDeal);
     }
+
 
     // ==========================================
     // GET ALL DEALS
@@ -83,6 +146,7 @@ public class DealService
                 .map(this::mapToResponse)
                 .toList();
     }
+
 
     // ==========================================
     // GET DEAL BY ID
@@ -99,6 +163,7 @@ public class DealService
         return mapToResponse(deal);
     }
 
+
     // ==========================================
     // UPDATE DEAL STATUS
     // ==========================================
@@ -114,12 +179,70 @@ public class DealService
                         new RuntimeException("Deal not found")
                 );
 
+        DealStatus oldStatus = deal.getStatus();
+
         deal.setStatus(request.getStatus());
 
         Deal updatedDeal = dealRepository.save(deal);
 
+        // ==========================================
+        // AUTOMATIC DEAL UPDATED NOTIFICATIONS
+        // ==========================================
+
+        Lead lead = updatedDeal.getLead();
+
+        User buyer = lead.getBuyer();
+        User seller = lead.getProperty().getSeller();
+
+        String propertyTitle =
+                lead.getProperty().getTitle();
+
+        String message =
+                "Deal status updated for property: "
+                        + propertyTitle
+                        + ". Status changed from "
+                        + oldStatus
+                        + " to "
+                        + updatedDeal.getStatus();
+
+        // Buyer notification
+        notificationService.createNotification(
+                buyer,
+                NotificationType.DEAL_UPDATED,
+                message,
+                updatedDeal.getId()
+        );
+
+        // Seller notification
+        notificationService.createNotification(
+                seller,
+                NotificationType.DEAL_UPDATED,
+                message,
+                updatedDeal.getId()
+        );
+
+        // Admin / Broker notifications
+        List<User> admins =
+                userRepository.findAll()
+                        .stream()
+                        .filter(user ->
+                                user.getRole() == Role.ADMIN
+                        )
+                        .toList();
+
+        for (User admin : admins) {
+
+            notificationService.createNotification(
+                    admin,
+                    NotificationType.DEAL_UPDATED,
+                    message,
+                    updatedDeal.getId()
+            );
+        }
+
         return mapToResponse(updatedDeal);
     }
+
 
     // ==========================================
     // CALCULATE COMMISSION
@@ -138,6 +261,7 @@ public class DealService
                         RoundingMode.HALF_UP
                 );
     }
+
 
     // ==========================================
     // ENTITY → RESPONSE
