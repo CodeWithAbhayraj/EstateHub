@@ -1,4 +1,3 @@
-
 package com.example.EstateHub_Backend.user;
 
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -14,7 +13,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     boolean existsByMobile(String mobile);
 
-    // Get ADMIN and SUPER_ADMIN users
     List<User> findByRoleIn(List<Role> roles);
-}
 
+    long countByRole(Role role);
+}
