@@ -33,6 +33,7 @@ public class Notification {
     @Column(nullable = false, length = 1000)
     private String message;
 
+
     // Related entity ID
     // Example: leadId / visitId / propertyId / dealId
     private Long referenceId;
