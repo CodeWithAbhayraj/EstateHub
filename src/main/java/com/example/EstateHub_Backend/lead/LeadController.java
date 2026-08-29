@@ -23,6 +23,7 @@ public class LeadController {
     // BUYER - CREATE LEAD
     // ==========================================
 
+
     @PostMapping
     public ResponseEntity<LeadResponse> createLead(
             @Valid @RequestBody LeadRequest request
