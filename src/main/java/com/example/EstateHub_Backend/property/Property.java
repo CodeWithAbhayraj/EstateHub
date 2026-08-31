@@ -10,6 +10,11 @@ import lombok.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
+import com.example.EstateHub_Backend.property.image.PropertyImage;
+
+import java.util.ArrayList;
+import java.util.List;
+
 @Entity
 @Table(name = "properties")
 @Getter
@@ -18,6 +23,15 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @Builder
 public class Property {
+
+
+    @OneToMany(
+            mappedBy = "property",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true
+    )
+    @Builder.Default
+    private List<PropertyImage> images = new ArrayList<>();
 
 
     @Id
