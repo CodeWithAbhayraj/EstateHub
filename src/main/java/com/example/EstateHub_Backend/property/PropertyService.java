@@ -11,6 +11,7 @@ import com.example.EstateHub_Backend.notification.NotificationService;
 import com.example.EstateHub_Backend.notification.NotificationType;
 import com.example.EstateHub_Backend.property.dto.PropertyRequest;
 import com.example.EstateHub_Backend.property.dto.PropertyResponse;
+import com.example.EstateHub_Backend.property.image.PropertyImage;
 import com.example.EstateHub_Backend.user.Role;
 import com.example.EstateHub_Backend.user.User;
 import com.example.EstateHub_Backend.user.UserRepository;
@@ -439,6 +440,7 @@ public class PropertyService {
     // ENTITY → RESPONSE
     // ==========================================
 
+
     private PropertyResponse mapToResponse(
             Property property
     ) {
@@ -451,6 +453,7 @@ public class PropertyService {
                 .area(property.getArea())
                 .bhk(property.getBhk())
 
+                // PROPERTY TYPE
                 .propertyTypeId(
                         property.getPropertyType().getId()
                 )
@@ -458,6 +461,7 @@ public class PropertyService {
                         property.getPropertyType().getName()
                 )
 
+                // CITY
                 .cityId(
                         property.getCity().getId()
                 )
@@ -465,6 +469,7 @@ public class PropertyService {
                         property.getCity().getName()
                 )
 
+                // AREA
                 .areaId(
                         property.getLocationArea().getId()
                 )
@@ -472,6 +477,7 @@ public class PropertyService {
                         property.getLocationArea().getName()
                 )
 
+                // OTHER DETAILS
                 .furnished(property.getFurnished())
                 .parking(property.getParking())
                 .facing(property.getFacing())
@@ -479,11 +485,25 @@ public class PropertyService {
                 .newProject(property.getNewProject())
                 .resale(property.getResale())
                 .description(property.getDescription())
+
+                // STATUS
                 .status(property.getStatus())
+
+                // TIMESTAMPS
                 .createdAt(property.getCreatedAt())
                 .updatedAt(property.getUpdatedAt())
 
+                // IMAGES
+                .images(
+                        property.getImages()
+                                .stream()
+                                .map(PropertyImage::getImageUrl)
+                                .toList()
+                )
+
                 .build();
     }
-}
+
+    }
+
 

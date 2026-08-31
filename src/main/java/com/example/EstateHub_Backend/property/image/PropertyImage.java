@@ -1,6 +1,7 @@
-package com.example.EstateHub_Backend.property;
+package com.example.EstateHub_Backend.property.image;
 
 
+import com.example.EstateHub_Backend.property.Property;
 import jakarta.persistence.*;
 import lombok.*;
 

@@ -1,4 +1,4 @@
-package com.example.EstateHub_Backend.property;
+package com.example.EstateHub_Backend.property.image;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 

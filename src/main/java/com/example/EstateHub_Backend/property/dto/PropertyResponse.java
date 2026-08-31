@@ -6,6 +6,7 @@ import lombok.Getter;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Getter
 @Builder
@@ -49,4 +50,6 @@ public class PropertyResponse {
     private LocalDateTime createdAt;
 
     private LocalDateTime updatedAt;
+
+    private List<String> images;
 }
