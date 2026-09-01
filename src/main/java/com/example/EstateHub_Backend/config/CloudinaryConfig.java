@@ -31,5 +31,6 @@ public class CloudinaryConfig {
         config.put("secure", "true");
 
         return new Cloudinary(config);
+
     }
 }
