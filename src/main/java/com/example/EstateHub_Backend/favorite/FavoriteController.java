@@ -20,6 +20,7 @@ public class FavoriteController {
     // BUYER - SAVE PROPERTY TO FAVORITES
     // =====================================================
 
+
     @PostMapping("/{propertyId}")
     @PreAuthorize("hasRole('BUYER')")
     public ResponseEntity<FavoriteResponse> addFavorite(
