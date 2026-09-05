@@ -47,6 +47,9 @@ public class PropertyResponse {
 
     private PropertyStatus status;
 
+    // Rejection reason
+    private String rejectionReason;
+
     private LocalDateTime createdAt;
 
     private LocalDateTime updatedAt;

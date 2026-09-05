@@ -41,6 +41,19 @@ public class PropertyController {
     }
 
     // =====================================================
+    // ADMIN - GET ALL PROPERTIES
+    // =====================================================
+
+    @GetMapping("/admin/all")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    public ResponseEntity<List<PropertyResponse>> getAllProperties() {
+
+        return ResponseEntity.ok(
+                propertyService.getAllProperties()
+        );
+    }
+
+    // =====================================================
     // BUYER / SELLER / ADMIN - GET PROPERTY
     // =====================================================
 

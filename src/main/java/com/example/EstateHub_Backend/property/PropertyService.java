@@ -1,4 +1,3 @@
-
 package com.example.EstateHub_Backend.property;
 
 import com.example.EstateHub_Backend.location.Area;
@@ -33,7 +32,6 @@ public class PropertyService {
     private final AreaRepository areaRepository;
     private final PropertyTypeRepository propertyTypeRepository;
 
-    // Notification service
     private final NotificationService notificationService;
 
 
@@ -152,6 +150,20 @@ public class PropertyService {
 
         return propertyRepository
                 .findBySellerId(seller.getId())
+                .stream()
+                .map(this::mapToResponse)
+                .toList();
+    }
+
+
+    // ==========================================
+    // ADMIN - GET ALL PROPERTIES
+    // ==========================================
+
+    @Transactional(readOnly = true)
+    public List<PropertyResponse> getAllProperties() {
+
+        return propertyRepository.findAll()
                 .stream()
                 .map(this::mapToResponse)
                 .toList();
@@ -341,6 +353,8 @@ public class PropertyService {
         }
 
         property.setStatus(PropertyStatus.PUBLISHED);
+
+        // Clear previous rejection reason
         property.setRejectionReason(null);
 
         Property savedProperty =
@@ -373,6 +387,13 @@ public class PropertyService {
             String reason
     ) {
 
+        if (reason == null || reason.trim().isEmpty()) {
+
+            throw new IllegalArgumentException(
+                    "Rejection reason is required"
+            );
+        }
+
         Property property = getProperty(id);
 
         if (property.getStatus() != PropertyStatus.PENDING_APPROVAL) {
@@ -383,7 +404,7 @@ public class PropertyService {
         }
 
         property.setStatus(PropertyStatus.REJECTED);
-        property.setRejectionReason(reason);
+        property.setRejectionReason(reason.trim());
 
         Property savedProperty =
                 propertyRepository.save(property);
@@ -397,7 +418,7 @@ public class PropertyService {
                 "Your property has been rejected: "
                         + property.getTitle()
                         + ". Reason: "
-                        + reason;
+                        + reason.trim();
 
         notificationService.createNotification(
                 property.getSeller(),
@@ -439,7 +460,6 @@ public class PropertyService {
     // ==========================================
     // ENTITY → RESPONSE
     // ==========================================
-
 
     private PropertyResponse mapToResponse(
             Property property
@@ -489,6 +509,11 @@ public class PropertyService {
                 // STATUS
                 .status(property.getStatus())
 
+                // REJECTION REASON
+                .rejectionReason(
+                        property.getRejectionReason()
+                )
+
                 // TIMESTAMPS
                 .createdAt(property.getCreatedAt())
                 .updatedAt(property.getUpdatedAt())
@@ -503,7 +528,4 @@ public class PropertyService {
 
                 .build();
     }
-
-    }
-
-
+}
